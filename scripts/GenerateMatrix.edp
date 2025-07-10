@@ -1,0 +1,114 @@
+load "iovtk"
+
+string OutputDir = "../data/";
+
+real Rext = 5.;
+real Rint = 3.;
+
+int LabelExt = 1;
+int LabelInt = 2;
+
+int NbPtLambda = 10;
+
+real k = 1.;
+real lambda = 2. * pi / k;
+
+int Nbcapteur = 1; // Big N in the paper, number of sources and measurements
+real[int] thetaSource(Nbcapteur);
+real[int] thetaRecepteur(Nbcapteur);
+
+thetaSource = 0 : (2 * pi / Nbcapteur) : 2 * pi;
+thetaRecepteur = 0 : (2 * pi / Nbcapteur) : 2 * pi;
+
+{
+  ofstream fileoutput(OutputDir + "Thetasource.dat");
+  fileoutput << thetaSource;
+}
+
+border CercleExt(t = 0, 2. * pi) { x = Rext * cos(t); y = Rext * sin(t); label = LabelExt; }
+border CercleInt(t = 0, 2. * pi) { x = Rint * cos(t); y = Rint * sin(t); label = LabelInt; }
+
+mesh Th = buildmesh(
+  CercleExt(2 * pi * Rext * NbPtLambda / lambda)
+  + CercleInt(2 * pi * Rint * NbPtLambda / lambda)
+);
+
+//plot(Th, wait = 1);
+
+int[int] labelObject = [LabelExt];
+meshL ThL = extract(Th, label = labelObject);
+
+ThL = OrientNormal(ThL, unbounded = 1);
+
+int PtInt = Th(0., 0.).region;
+
+fespace FS0(Th, P0); // usefull for n index of refraction
+fespace FS1(Th, P1);
+fespace FSL(ThL, P1);
+
+FS0 indice = 2. * cos(x) * (region == PtInt) + 1. * (region != PtInt); // Le vrai indice que l'on va essayer de retrouver.
+
+//plot(indice, wait = 1);
+
+varf Bili(u, v) = int2d(Th)(
+  -dx(u) * dx(v) - dy(u) * dy(v) + k^2 * indice * u * v
+) + on(LabelExt, u = 0);
+
+matrix<complex> A = Bili(FS1, FS1);
+
+varf Bili0(u, v) = int2d(Th)(
+  -dx(u) * dx(v) - dy(u) * dy(v) + k^2 * u * v
+) + on(LabelExt, u = 0);
+
+matrix<complex> A0 = Bili0(FS1, FS1);
+
+set(A0, solver = sparsesolver);
+
+{
+  ofstream fileoutput(OutputDir + "MatrixABorn.dat");
+  fileoutput << A0;
+}
+
+//plot(ThL, wait = 1);
+
+varf MesureTh(u, v) = int1d(Th, LabelExt)((dx(u) * N.x + dy(u) * N.y) * v);
+
+matrix Ctmp = MesureTh(FS1, FS1);
+matrix FS1toFSL = interpolate(FSL, FS1);
+
+matrix C = FS1toFSL * Ctmp;
+
+{
+  ofstream fileoutput(OutputDir + "MatrixC.dat");
+  fileoutput << C;
+}
+
+for (int itercapteur = 0; itercapteur < Nbcapteur; itercapteur++) {
+
+  func PhiinftySource = exp(1.i * k * (cos(thetaSource(itercapteur)) * x + sin(thetaSource(itercapteur)) * y)); // incident plane waves : u^i
+
+  varf Lin(contrast, v) = int2d(Th)(contrast * k^2 * v * PhiinftySource);
+
+  matrix<complex> B = Lin(FS0, FS1);
+
+  {
+    ofstream fileoutput(OutputDir + "MatrixB_" + itercapteur + ".dat");
+    fileoutput << B;
+  }
+
+  varf LinIndice(unused, v) = int2d(Th)((1 - indice) * k^2 * v * PhiinftySource);
+
+  complex[int] rhs = LinIndice(0., FS1);
+
+  FS1<complex> usol;
+  usol[] = A0^-1 * rhs; // On prend A0 car on a choisit un modele lineairise
+
+  varf MesureV(unused, v) = int2d(Th, LabelExt)((dx(usol) * N.x + dy(usol) * N.y) * v);
+  FSL<complex> Mesure;
+  Mesure[] = MesureV(0., FSL);
+
+  {
+    ofstream fileoutput(OutputDir + "Mesure_" + itercapteur + ".dat");
+    fileoutput << Mesure[];
+  }
+}

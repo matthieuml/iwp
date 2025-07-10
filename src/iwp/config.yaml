@@ -1,0 +1,9 @@
+# =========== Experiment ===========
+exp_path: ./runs
+exp_name: default
+seed: 42 # Seed for random number generators, fixing the randomness in the application (default: 42)
+
+# =========== Logging ===========
+verbose: True # Whether to print additional information during training and evaluation (default: True)
+save_logs: True # Whether to save logs during training and evaluation (default: True)
+log_level: INFO # Logging level for the application (default: INFO)
