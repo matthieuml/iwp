@@ -13,7 +13,7 @@ int NbPtLambda = 10;
 real k = 1.;
 real lambda = 2. * pi / k;
 
-int Nbcapteur = 1; // Big N in the paper, number of sources and measurements
+int Nbcapteur = 2; // Big N in the paper, number of sources and measurements
 real[int] thetaSource(Nbcapteur);
 real[int] thetaRecepteur(Nbcapteur);
 
@@ -103,12 +103,11 @@ for (int itercapteur = 0; itercapteur < Nbcapteur; itercapteur++) {
   FS1<complex> usol;
   usol[] = A0^-1 * rhs; // On prend A0 car on a choisit un modele lineairise
 
-  varf MesureV(unused, v) = int2d(Th, LabelExt)((dx(usol) * N.x + dy(usol) * N.y) * v);
   FSL<complex> Mesure;
-  Mesure[] = MesureV(0., FSL);
+  Mesure[] = C*usol[];
 
   {
-    ofstream fileoutput(OutputDir + "Mesure_" + itercapteur + ".dat");
+    ofstream fileoutput(OutputDir + "Vectord_" + itercapteur + ".dat");
     fileoutput << Mesure[];
   }
 }
