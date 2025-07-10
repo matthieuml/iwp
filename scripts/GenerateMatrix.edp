@@ -83,7 +83,7 @@ matrix C = FS1toFSL * Ctmp;
   fileoutput << C;
 }
 
-for (int itercapteur = 0; itercapteur < Nbcapteur; itercapteur++) {
+for (int itercapteur = 0; itercapteur < Nbcapteur + 1; itercapteur++) {
 
   func PhiinftySource = exp(1.i * k * (cos(thetaSource(itercapteur)) * x + sin(thetaSource(itercapteur)) * y)); // incident plane waves : u^i
 
