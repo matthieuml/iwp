@@ -47,6 +47,12 @@ fespace FS1(Th, P1);
 fespace FSL(ThL, P1);
 
 FS0 indice = 2. * cos(x) * (region == PtInt) + 1. * (region != PtInt); // Le vrai indice que l'on va essayer de retrouver.
+FS0<complex> contrast = indice - 1.;
+
+{
+  ofstream fileoutput(OutputDir + "Vectorm.dat");
+  fileoutput << contrast[];
+}
 
 //plot(indice, wait = 1);
 
@@ -87,7 +93,7 @@ for (int itercapteur = 0; itercapteur < Nbcapteur + 1; itercapteur++) {
 
   func PhiinftySource = exp(1.i * k * (cos(thetaSource(itercapteur)) * x + sin(thetaSource(itercapteur)) * y)); // incident plane waves : u^i
 
-  varf Lin(contrast, v) = int2d(Th)(contrast * k^2 * v * PhiinftySource);
+  varf Lin(u, v) = int2d(Th)(u * k^2 * v * PhiinftySource);
 
   matrix<complex> B = Lin(FS0, FS1);
 
