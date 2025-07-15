@@ -4,6 +4,10 @@ exp_name: default
 device: cpu # Device to run the application on, can be 'cpu' or 'cuda' (default: cpu)
 seed: 42 # Seed for random number generators, fixing the randomness in the application (default: 42)
 
+# =========== Parameters ===========
+lambd: 1e2
+mu: 1e-5
+
 # =========== Data ===========
 data_path: ./data
 
@@ -11,3 +15,4 @@ data_path: ./data
 log_to_console: True # Whether to log to console during execution (default: True)
 save_logs: True # Whether to save logs (default: True)
 log_level: INFO # Logging level for the application (default: INFO)
+verbose: True # Whether to log detailed information (default: False)
