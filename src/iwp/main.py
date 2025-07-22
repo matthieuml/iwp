@@ -3,7 +3,11 @@ import scipy.sparse as sp
 import os
 import torch
 
-from iwp.algorithms.algorithms import StronglyConvexNesterovAcceleratedGradientDescent 
+from iwp.algorithms.algorithms import (
+    ConvexGradientDescent,
+    ConvexNesterovAcceleratedGradientDescent,
+    StronglyConvexNesterovAcceleratedGradientDescent,
+)
 
 from iwp.data.load_experiment_data import load_experiment_data
 
@@ -92,13 +96,12 @@ if __name__ == "__main__":
     K_eigenvalues = np.linalg.eigvals(K_op.toarray())
     K = np.max(np.abs(K_eigenvalues))
 
-    algo = StronglyConvexNesterovAcceleratedGradientDescent(
+    algo = ConvexNesterovAcceleratedGradientDescent(
         name=args.exp_name,
         f=f,
         df=df,
         K=K,
-        mu=mu,
         logger=logger,
     )
     x_0 = np.zeros(I*L + P) # shape: (I*L + P,)
-    algo.run(x0=x_0, max_iterations=1000)
+    algo.run(x0=x_0, max_iterations=50)
