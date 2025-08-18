@@ -58,13 +58,13 @@ FS0<complex> contrast = indice - 1.;
 
 varf Bili(u, v) = int2d(Th)(
   -dx(u) * dx(v) - dy(u) * dy(v) + k^2 * indice * u * v
-) + on(LabelExt, u = 0);
+) + int1d(Th, LabelExt)(1.i * k * u * v);
 
 matrix<complex> A = Bili(FS1, FS1);
 
 varf Bili0(u, v) = int2d(Th)(
   -dx(u) * dx(v) - dy(u) * dy(v) + k^2 * u * v
-) + on(LabelExt, u = 0);
+) + int1d(Th, LabelExt)(1.i * k * u * v);
 
 matrix<complex> A0 = Bili0(FS1, FS1);
 
