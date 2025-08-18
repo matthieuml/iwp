@@ -1,10 +1,10 @@
-import torch
+import logging
 import os
 import random
 import shutil
-import logging
-import numpy as np
 
+import numpy as np
+import torch
 
 logger = logging.getLogger("iwp")
 
@@ -16,7 +16,7 @@ def make_dirs(
 
     Args:
         experiment_path (str): path to the experiment
-    
+
     Returns:
         tuple: A tuple containing the experiment path and the visuals path.
     """
@@ -56,7 +56,6 @@ def copy_file(source: str, destination: str) -> None:
         logger.debug(f"Copied file from {source} to {destination}")
     except Exception as e:
         logger.error(f"Failed to copy file from {source} to {destination}")
-
 
 
 def set_seed(seed: int) -> None:

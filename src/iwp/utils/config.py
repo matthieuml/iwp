@@ -1,8 +1,8 @@
 import argparse
 import logging
 import os
-import yaml
 
+import yaml
 
 logger = logging.getLogger("iwp")
 

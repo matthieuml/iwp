@@ -1,11 +1,10 @@
-import argparse
 import glob
 import logging
-import numpy as np
 import os
 
-from iwp.data.load_from_dat import load_sparse_matrix, load_vector
+import numpy as np
 
+from iwp.data.load_from_dat import load_sparse_matrix, load_vector
 
 logger = logging.getLogger("iwp")
 
@@ -31,9 +30,7 @@ def load_experiment_data(data_path: str) -> tuple:
     m = load_vector(os.path.join(data_path, "Vectorm.dat"), is_complex=True)
 
     # Find all files starting with "MatrixB_" in the experiment path
-    B_files = sorted(
-        glob.glob(os.path.join(data_path, "MatrixB_*"))
-    )
+    B_files = sorted(glob.glob(os.path.join(data_path, "MatrixB_*")))
     logger.info(f"Found {len(B_files)} B matrices.")
 
     # Load all B matrices
@@ -54,10 +51,18 @@ def load_experiment_data(data_path: str) -> tuple:
 
     try:
         assert A.shape[0] == A.shape[1], "Matrix A must be square."
-        assert all(B.shape[0] == A.shape[0] for B in B_list), "All B matrices must have the same number of rows as A."
-        assert all(B.shape[1] == m.shape[0] for B in B_list), "All B matrices must have the same number of columns as the dimension of m."
-        assert all(d.shape[0] == C.shape[0] for d in d_list), "All d vectors must have the same number of rows as C."
-        assert C.shape[1] == A.shape[0], "Matrix C must have the same number of columns as A."
+        assert all(
+            B.shape[0] == A.shape[0] for B in B_list
+        ), "All B matrices must have the same number of rows as A."
+        assert all(
+            B.shape[1] == m.shape[0] for B in B_list
+        ), "All B matrices must have the same number of columns as the dimension of m."
+        assert all(
+            d.shape[0] == C.shape[0] for d in d_list
+        ), "All d vectors must have the same number of rows as C."
+        assert (
+            C.shape[1] == A.shape[0]
+        ), "Matrix C must have the same number of columns as A."
 
     except AssertionError as ae:
         logger.error(f"Data validation failed: {ae}")

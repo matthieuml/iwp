@@ -1,8 +1,9 @@
 import abc
 import time
 import tracemalloc
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy.sparse as sp
 import seaborn as sns
 
@@ -59,18 +60,26 @@ class FixedPointAlgorithm(abc.ABC):
             self.iteration += 1
             if self.logger:
                 if self.verbose:
-                    self.logger.info(f"Iteration {self.iteration}: f(x) = {self.f_values[-1]:.6f}, time = {time.time() - t0:.3f}s")
+                    self.logger.info(
+                        f"Iteration {self.iteration}: f(x) = {self.f_values[-1]:.6f}, time = {time.time() - t0:.3f}s"
+                    )
                 else:
-                    self.logger.debug(f"Iteration {self.iteration}: f(x) = {self.f_values[-1]:.6f}, time = {time.time() - t0:.3f}s")
+                    self.logger.debug(
+                        f"Iteration {self.iteration}: f(x) = {self.f_values[-1]:.6f}, time = {time.time() - t0:.3f}s"
+                    )
         self.cv_time = time.time() - t0
         _, peak = tracemalloc.get_traced_memory()
         self.memory_used = peak
         tracemalloc.stop()
         if self.logger:
             if self.iteration < self.max_iterations:
-                self.logger.info(f"Converged after {self.iteration} iterations in {self.cv_time:.3f} seconds with {self.memory_used / 1024:.2f} KB memory used.")
+                self.logger.info(
+                    f"Converged after {self.iteration} iterations in {self.cv_time:.3f} seconds with {self.memory_used / 1024:.2f} KB memory used."
+                )
             else:
-                self.logger.info(f"Stopped after {self.max_iterations} iterations in {self.cv_time:.3f} seconds with {self.memory_used / 1024:.2f} KB memory used.")
+                self.logger.info(
+                    f"Stopped after {self.max_iterations} iterations in {self.cv_time:.3f} seconds with {self.memory_used / 1024:.2f} KB memory used."
+                )
         self.x_values = np.array(self.x_values)
         self.f_values = np.array(self.f_values)
 
@@ -109,7 +118,7 @@ class ConvexNesterovAcceleratedGradientDescent(FixedPointAlgorithm):
         self.lambd = (1 + np.sqrt(1 + 4 * self.lambd_prev**2)) / 2
         self.gamma = (self.lambd_prev - 1) / self.lambd
         # Compute gradient step
-        y_new = x - (1.0 / self.K) *  self.current_gradient
+        y_new = x - (1.0 / self.K) * self.current_gradient
         # Nesterov acceleration
         x_new = y_new + self.gamma * (y_new - self.y_prev)
         # Store for next iteration
@@ -128,7 +137,7 @@ class StronglyConvexNesterovAcceleratedGradientDescent(FixedPointAlgorithm):
         self.K = K
         self.mu = mu
         ratio = np.sqrt(K / mu)
-        self.gamma = - (ratio - 1) / (ratio + 1)
+        self.gamma = -(ratio - 1) / (ratio + 1)
         self.y_prev = None
         self.current_gradient = None
 
@@ -149,8 +158,22 @@ class StronglyConvexNesterovAcceleratedGradientDescent(FixedPointAlgorithm):
         return np.linalg.norm(self.current_gradient) < threshold
 
 
-class PenalizedConvexForwardBackward(FixedPointAlgorithm):
-    def __init__(self, name, f, D, D_star, E, E_star, d, mu, gamma_schedule, lambda_schedule, logger=None, verbose=True):
+class ConstrainedConvexForwardBackward(FixedPointAlgorithm):
+    def __init__(
+        self,
+        name,
+        f,
+        D,
+        D_star,
+        E,
+        E_star,
+        d,
+        mu,
+        gamma,
+        lambd,
+        logger=None,
+        verbose=True,
+    ):
         super().__init__(name, f, logger=logger, verbose=verbose)
         self.D = D
         self.D_star = D_star
@@ -158,8 +181,8 @@ class PenalizedConvexForwardBackward(FixedPointAlgorithm):
         self.E_star = E_star
         self.d = d
         self.mu = mu
-        self.gamma_schedule = gamma_schedule
-        self.lambda_schedule = lambda_schedule
+        self.gamma = gamma
+        self.lambd = lambd
         self.x_prev = None
         self.current_gradient = None
 
@@ -168,27 +191,27 @@ class PenalizedConvexForwardBackward(FixedPointAlgorithm):
         if self.x_prev is None:
             self.x_prev = x
         # Get current gamma and lambda
-        if callable(self.gamma_schedule):
-            gamma_n = self.gamma_schedule(self.iteration)
-        elif isinstance(self.gamma_schedule, float):
-            gamma_n = self.gamma_schedule
-        elif isinstance(self.gamma_schedule, int):
-            gamma_n = self.gamma_schedule
+        if callable(self.gamma):
+            gamma_n = self.gamma(self.iteration)
+        elif isinstance(self.gamma, float):
+            gamma_n = self.gamma
+        elif isinstance(self.gamma, int):
+            gamma_n = self.gamma
         else:
-            raise ValueError("gamma_schedule must be a callable, float, or int.")
-        if callable(self.lambda_schedule):
-            lambda_n = self.lambda_schedule(self.iteration)
-        elif isinstance(self.lambda_schedule, float):
-            lambda_n = self.lambda_schedule
-        elif isinstance(self.lambda_schedule, int):
-            lambda_n = self.lambda_schedule
+            raise ValueError("gamma must be a callable, float, or int.")
+        if callable(self.lambd):
+            lambda_n = self.lambd(self.iteration)
+        elif isinstance(self.lambd, float):
+            lambda_n = self.lambd
+        elif isinstance(self.lambd, int):
+            lambda_n = self.lambd
         else:
-            raise ValueError("lambda_schedule must be a callable, float, or int.")
+            raise ValueError("lambd must be a callable, float, or int.")
         # Gradient step
         z = x - gamma_n * self.current_gradient
         # Proximal step
         w = sp.linalg.spsolve(self.E @ self.E_star, self.E @ z)
-        y = z - self.E_star(w)
+        y = z - self.E_star @ w
         # Relaxation step
         x_new = self.x_prev + lambda_n * (y - self.x_prev)
         # Store for next iteration
@@ -196,12 +219,27 @@ class PenalizedConvexForwardBackward(FixedPointAlgorithm):
         return x_new
 
     def is_converged(self, x, threshold=1e-6):
-        self.current_gradient = self.D_star(self.D @ x - self.d) + self.mu * x
+        self.current_gradient = self.D_star @ (self.D @ x - self.d) + self.mu * x
+        print(f"Current gradient norm: {np.linalg.norm(self.current_gradient)}")
         return np.linalg.norm(self.current_gradient) < threshold
 
 
-class PenalizedConvexGradientDescent(FixedPointAlgorithm):
-    def __init__(self, name, f, A, A_star, C, C_star, B_list, d_list, mu, gamma_schedule, logger=None, verbose=True):
+class ConstrainedConvexGradientDescent(FixedPointAlgorithm):
+    def __init__(
+        self,
+        name,
+        f,
+        A,
+        A_star,
+        C,
+        C_star,
+        B_list,
+        d_list,
+        mu,
+        gamma,
+        logger=None,
+        verbose=True,
+    ):
         super().__init__(name, f, logger=logger, verbose=verbose)
         self.A = A
         self.A_star = A_star
@@ -210,19 +248,19 @@ class PenalizedConvexGradientDescent(FixedPointAlgorithm):
         self.B_list = B_list
         self.d_list = d_list
         self.mu = mu
-        self.gamma_schedule = gamma_schedule
+        self.gamma = gamma
         self.current_gradient = None
 
     def step(self, m):
         # Determine gamma for this iteration
-        if callable(self.gamma_schedule):
-            gamma_n = self.gamma_schedule(self.iteration)
-        elif isinstance(self.gamma_schedule, float):
-            gamma_n = self.gamma_schedule
-        elif isinstance(self.gamma_schedule, int):
-            gamma_n = self.gamma_schedule
+        if callable(self.gamma):
+            gamma_n = self.gamma(self.iteration)
+        elif isinstance(self.gamma, float):
+            gamma_n = self.gamma
+        elif isinstance(self.gamma, int):
+            gamma_n = self.gamma
         else:
-            raise ValueError("gamma_schedule must be a callable, float, or int.")
+            raise ValueError("gamma must be a callable, float, or int.")
 
         # Gradient step
         m_new = m - gamma_n * self.current_gradient
@@ -232,7 +270,7 @@ class PenalizedConvexGradientDescent(FixedPointAlgorithm):
         p_sum = 0
         for B_i, d_i in zip(self.B_list, self.d_list):
             t_i = sp.linalg.spsolve(self.A, B_i @ m)
-            rhs = self.C_star(self.C @ t_i - d_i)
+            rhs = self.C_star @ self.C @ t_i - d_i
             p_i = sp.linalg.spsolve(self.A_star, rhs)
             p_sum += B_i.T @ p_i
         grad = p_sum + self.mu * m

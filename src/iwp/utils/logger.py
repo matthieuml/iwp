@@ -1,9 +1,6 @@
 import logging
 import os
 
-import logging
-import os
-
 
 def setup_logger(
     name: str, log_file: str = None, level: str = "INFO", log_to_console: bool = True
