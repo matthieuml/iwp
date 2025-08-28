@@ -33,11 +33,11 @@ def make_dirs(
                 break
             counter += 1
 
-    visualizations_path = os.path.join(experiment_path, "visuals")
-    os.makedirs(visualizations_path, exist_ok=True)
-    logger.debug(f"Created directories for the experiment at {visualizations_path}")
+    visuals_path = os.path.join(experiment_path, "visuals")
+    os.makedirs(visuals_path, exist_ok=True)
+    logger.debug(f"Created directories for the experiment at {visuals_path}")
 
-    return experiment_path, visualizations_path
+    return experiment_path, visuals_path
 
 
 def copy_file(source: str, destination: str) -> None:

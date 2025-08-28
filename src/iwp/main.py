@@ -22,7 +22,7 @@ if __name__ == "__main__":
     args = load_yaml_into_namespace(args.config, args)
 
     # Paths to save the results
-    args.exp_path, args.visualizations_path = make_dirs(
+    args.exp_path, args.visuals_path = make_dirs(
         os.path.join(args.exp_path, args.exp_name)
     )
 
@@ -55,6 +55,7 @@ if __name__ == "__main__":
     I = len(B_list)
     J, L = C.shape
     P = B_list[0].shape[1]
+    logger.info(f"Dimensions: I={I}, J={J}, L={L}, P={P}")
 
     blocks = []
     for i in range(I):
@@ -81,7 +82,7 @@ if __name__ == "__main__":
 
     K_eigenvalues_A = np.linalg.eigvals((A.conj().T @ A).toarray())
     K_A = np.max(np.abs(K_eigenvalues_A))
-    logger.info(f"K_A: {K_A}")
+    logger.info(f"Lipschitz constant K_A: {K_A}")
 
     def J_1(x):
         Dx_minus_d = D @ x - d
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     K_op_J_1 = D.conj().T @ D + lambd * E_star @ E + mu * sp.eye(I * L + P)
     K_eigenvalues_J_1 = np.linalg.eigvals(K_op_J_1.toarray())
     K_J_1 = np.max(np.abs(K_eigenvalues_J_1))
-    logger.info(f"K_J_1: {K_J_1}")
+    logger.info(f"Lipschitz constant K_J_1: {K_J_1}")
 
     def J_2(x, threshold=1e-6):
         Dx_minus_d = D @ x - d
@@ -116,7 +117,7 @@ if __name__ == "__main__":
     K_op_J_2 = D.conj().T @ D + mu * sp.eye(I * L + P)
     K_eigenvalues_J_2 = np.linalg.eigvals(K_op_J_2.toarray())
     K_J_2 = np.max(np.abs(K_eigenvalues_J_2))
-    logger.info(f"K_J_2: {K_J_2}")
+    logger.info(f"Lipschitz constant K_J_2: {K_J_2}")
 
     def J_3(m):
         total = 0.0
@@ -132,7 +133,7 @@ if __name__ == "__main__":
     ) + mu * sp.eye(P)
     K_eigenvalues_J_3 = np.linalg.eigvals(K_op_J_3.toarray())
     K_J_3 = np.max(np.abs(K_eigenvalues_J_3))
-    logger.info(f"K_J_3: {K_J_3}")
+    logger.info(f"Lipschitz constant K_J_3: {K_J_3}")
 
     x_0 = np.zeros(I * L + P)  # shape: (I*L + P,)
 
@@ -144,7 +145,8 @@ if __name__ == "__main__":
         mu=mu,
         logger=logger,
     )
-    # algo.run(x0=x_0, max_iterations=100)
+    algo.run(x0=x_0, max_iterations=1000)
+    algo.plot_algorithm_convergence(m, args.visuals_path)
 
     algo = ConstrainedConvexForwardBackward(
         name=args.exp_name,
@@ -159,4 +161,21 @@ if __name__ == "__main__":
         lambd=1,
         logger=logger,
     )
-    # algo.run(x0=x_0, max_iterations=100)
+    algo.run(x0=x_0, max_iterations=1000)
+    algo.plot_algorithm_convergence(m, args.visuals_path)
+
+    algo = ConstrainedConvexGradientDescent(
+        name=args.exp_name,
+        f=J_3,
+        A=A,
+        A_star=A.conj().T,
+        C=C,
+        C_star=C.conj().T,
+        B_list=B_list,
+        d_list=d_list,
+        mu=mu,
+        gamma=1 / K_J_3,
+        logger=logger,
+    )
+    algo.run(x0=x_0[-P:], max_iterations=1000)
+    algo.plot_algorithm_convergence(m, args.visuals_path)

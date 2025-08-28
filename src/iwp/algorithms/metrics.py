@@ -14,11 +14,7 @@ def mae(y_true, y_pred):
     """
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
-
-    if y_true.shape != y_pred.shape:
-        raise ValueError("Shape of y_true and y_pred must match.")
-
-    return np.mean(np.abs(y_true - y_pred))
+    return np.mean(np.abs(y_true - y_pred), axis=-1)
 
 
 def mse(y_true, y_pred):
@@ -34,8 +30,4 @@ def mse(y_true, y_pred):
     """
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
-
-    if y_true.shape != y_pred.shape:
-        raise ValueError("Shape of y_true and y_pred must match.")
-
-    return np.mean((y_true - y_pred) ** 2)
+    return np.mean(np.abs(y_true - y_pred) ** 2, axis=-1)

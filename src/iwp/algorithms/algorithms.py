@@ -1,11 +1,13 @@
 import abc
+import os
 import time
 import tracemalloc
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.sparse as sp
-import seaborn as sns
+
+from .metrics import mae, mse
 
 
 class FixedPointAlgorithm(abc.ABC):
@@ -29,22 +31,6 @@ class FixedPointAlgorithm(abc.ABC):
     def is_converged(self, x):
         pass
 
-    def plot_f_over_iterations(self, ax=None):
-        with sns.axes_style("darkgrid"):
-            if ax is not None:
-                ax.plot(self.f_values)
-                ax.set_xlabel("Iteration")
-                ax.set_ylabel("f(x)")
-                ax.set_yscale("log")
-                ax.set_title(f"{self.name} - {self.cv_time:.3f}s")
-            else:
-                plt.plot(self.f_values)
-                plt.xlabel("Iteration")
-                plt.ylabel("f(x)")
-                plt.yscale("log")
-                plt.title(f"f(x) over iterations for {self.name} - {self.cv_time:.3f}s")
-                plt.show()
-
     def run(self, x0, max_iterations=1000):
         self.max_iterations = max_iterations
         tracemalloc.start()
@@ -56,6 +42,7 @@ class FixedPointAlgorithm(abc.ABC):
         while not self.is_converged(x) and self.iteration < self.max_iterations:
             x_new = self.step(x)
             x = x_new
+            self.x_values.append(x)
             self.f_values.append(self.f(x))
             self.iteration += 1
             if self.logger:
@@ -157,6 +144,75 @@ class StronglyConvexNesterovAcceleratedGradientDescent(FixedPointAlgorithm):
         self.current_gradient = self.df(x)
         return np.linalg.norm(self.current_gradient) < threshold
 
+    def plot_algorithm_convergence(self, m, visuals_path, add_marker=False):
+        m_pred = self.x_values[:, -m.shape[0] :]
+        mse_values = mse(m_pred, m)
+        mae_values = mae(m_pred, m)
+
+        fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+
+        # Plot MSE over iterations
+        if add_marker:
+            axs[0].plot(mse_values, label="MSE", marker="o", markersize=4)
+        else:
+            axs[0].plot(mse_values, label="MSE")
+        if self.iteration < self.max_iterations:
+            axs[0].scatter(
+                self.iteration, mse_values[-1], color="red", marker="x", label="Stopped"
+            )
+        axs[0].set_xlabel("Iteration")
+        axs[0].set_ylabel("MSE")
+        axs[0].set_yscale("log")
+        axs[0].legend()
+
+        # Plot MAE over iterations
+        if add_marker:
+            axs[1].plot(mae_values, label="MAE", marker="o", markersize=4)
+        else:
+            axs[1].plot(mae_values, label="MAE")
+        if self.iteration < self.max_iterations:
+            axs[1].scatter(
+                self.iteration, mae_values[-1], color="red", marker="x", label="Stopped"
+            )
+        axs[1].set_xlabel("Iteration")
+        axs[1].set_ylabel("MAE")
+        axs[1].set_yscale("log")
+        axs[1].legend()
+
+        # Plot objective function values
+        if add_marker:
+            axs[2].plot(
+                self.f_values, label="Objective function", marker="o", markersize=4
+            )
+        else:
+            axs[2].plot(self.f_values, label="Objective function")
+        if self.iteration < self.max_iterations:
+            axs[2].scatter(
+                self.iteration,
+                self.f_values[-1],
+                color="red",
+                marker="x",
+                label="Stopped",
+            )
+        axs[2].set_xlabel("Iteration")
+        axs[2].set_ylabel("Objective function")
+        axs[2].set_yscale("log")
+        axs[2].legend()
+
+        fig.suptitle(
+            f"Convergence Plots for Strongly Convex Nesterov Accelerated Gradient Descent in {self.cv_time:.3f}s using {self.memory_used / 1024:.2f} KB"
+        )
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(
+            os.path.join(
+                visuals_path, f"StronglyConvexNesterovAcceleratedGradientDescent.png"
+            )
+        )
+        self.logger.info(
+            f"Saved convergence plots to {visuals_path}/StronglyConvexNesterovAcceleratedGradientDescent.png"
+        )
+        plt.close()
+
 
 class ConstrainedConvexForwardBackward(FixedPointAlgorithm):
     def __init__(
@@ -220,8 +276,72 @@ class ConstrainedConvexForwardBackward(FixedPointAlgorithm):
 
     def is_converged(self, x, threshold=1e-6):
         self.current_gradient = self.D_star @ (self.D @ x - self.d) + self.mu * x
-        print(f"Current gradient norm: {np.linalg.norm(self.current_gradient)}")
         return np.linalg.norm(self.current_gradient) < threshold
+
+    def plot_algorithm_convergence(self, m, visuals_path, add_marker=False):
+        m_pred = self.x_values[:, -m.shape[0] :]
+        mse_values = mse(m_pred, m)
+        mae_values = mae(m_pred, m)
+
+        fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+
+        # Plot MSE over iterations
+        if add_marker:
+            axs[0].plot(mse_values, label="MSE", marker="o", markersize=4)
+        else:
+            axs[0].plot(mse_values, label="MSE")
+        if self.iteration < self.max_iterations:
+            axs[0].scatter(
+                self.iteration, mse_values[-1], color="red", marker="x", label="Stopped"
+            )
+        axs[0].set_xlabel("Iteration")
+        axs[0].set_ylabel("MSE")
+        axs[0].set_yscale("log")
+        axs[0].legend()
+
+        # Plot MAE over iterations
+        if add_marker:
+            axs[1].plot(mae_values, label="MAE", marker="o", markersize=4)
+        else:
+            axs[1].plot(mae_values, label="MAE")
+        if self.iteration < self.max_iterations:
+            axs[1].scatter(
+                self.iteration, mae_values[-1], color="red", marker="x", label="Stopped"
+            )
+        axs[1].set_xlabel("Iteration")
+        axs[1].set_ylabel("MAE")
+        axs[1].set_yscale("log")
+        axs[1].legend()
+
+        # Plot objective function values
+        if add_marker:
+            axs[2].plot(
+                self.f_values, label="Objective function", marker="o", markersize=4
+            )
+        else:
+            axs[2].plot(self.f_values, label="Objective function")
+        if self.iteration < self.max_iterations:
+            axs[2].scatter(
+                self.iteration,
+                self.f_values[-1],
+                color="red",
+                marker="x",
+                label="Stopped",
+            )
+        axs[2].set_xlabel("Iteration")
+        axs[2].set_ylabel("Objective function")
+        axs[2].set_yscale("log")
+        axs[2].legend()
+
+        fig.suptitle(
+            f"Convergence Plots for Constrained Convex Forward-Backward in {self.cv_time:.3f}s using {self.memory_used / 1024:.2f} KB"
+        )
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(os.path.join(visuals_path, f"ConstrainedConvexForwardBackward.png"))
+        self.logger.info(
+            f"Saved convergence plots to {visuals_path}/ConstrainedConvexForwardBackward.png"
+        )
+        plt.close()
 
 
 class ConstrainedConvexGradientDescent(FixedPointAlgorithm):
@@ -270,9 +390,74 @@ class ConstrainedConvexGradientDescent(FixedPointAlgorithm):
         p_sum = 0
         for B_i, d_i in zip(self.B_list, self.d_list):
             t_i = sp.linalg.spsolve(self.A, B_i @ m)
-            rhs = self.C_star @ self.C @ t_i - d_i
+            rhs = self.C_star @ (self.C @ t_i - d_i)
             p_i = sp.linalg.spsolve(self.A_star, rhs)
-            p_sum += B_i.T @ p_i
+            p_sum += B_i.conj().T @ p_i
         grad = p_sum + self.mu * m
         self.current_gradient = grad
         return np.linalg.norm(grad) < threshold
+
+    def plot_algorithm_convergence(self, m, visuals_path, add_marker=False):
+        m_pred = self.x_values
+        mse_values = mse(m_pred, m)
+        mae_values = mae(m_pred, m)
+
+        fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+
+        # Plot MSE over iterations
+        if add_marker:
+            axs[0].plot(mse_values, label="MSE", marker="o", markersize=4)
+        else:
+            axs[0].plot(mse_values, label="MSE")
+        if self.iteration < self.max_iterations:
+            axs[0].scatter(
+                self.iteration, mse_values[-1], color="red", marker="x", label="Stopped"
+            )
+        axs[0].set_xlabel("Iteration")
+        axs[0].set_ylabel("MSE")
+        axs[0].set_yscale("log")
+        axs[0].legend()
+
+        # Plot MAE over iterations
+        if add_marker:
+            axs[1].plot(mae_values, label="MAE", marker="o", markersize=4)
+        else:
+            axs[1].plot(mae_values, label="MAE")
+        if self.iteration < self.max_iterations:
+            axs[1].scatter(
+                self.iteration, mae_values[-1], color="red", marker="x", label="Stopped"
+            )
+        axs[1].set_xlabel("Iteration")
+        axs[1].set_ylabel("MAE")
+        axs[1].set_yscale("log")
+        axs[1].legend()
+
+        # Plot objective function values
+        if add_marker:
+            axs[2].plot(
+                self.f_values, label="Objective function", marker="o", markersize=4
+            )
+        else:
+            axs[2].plot(self.f_values, label="Objective function")
+        if self.iteration < self.max_iterations:
+            axs[2].scatter(
+                self.iteration,
+                self.f_values[-1],
+                color="red",
+                marker="x",
+                label="Stopped",
+            )
+        axs[2].set_xlabel("Iteration")
+        axs[2].set_ylabel("Objective function")
+        axs[2].set_yscale("log")
+        axs[2].legend()
+
+        fig.suptitle(
+            f"Convergence Plots for Constrained Convex Gradient Descent in {self.cv_time:.3f}s using {self.memory_used / 1024:.2f} KB"
+        )
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.savefig(os.path.join(visuals_path, f"ConstrainedConvexGradientDescent.png"))
+        self.logger.info(
+            f"Saved convergence plots to {visuals_path}/ConstrainedConvexGradientDescent.png"
+        )
+        plt.close()
