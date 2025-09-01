@@ -1,0 +1,24 @@
+// Define the geometry (circle of radius 1)
+real Radius = 1.0;
+border Circle(t = 0, 2. * pi) { x = Radius * cos(t); y = Radius * sin(t); }
+
+// Define and build the mesh (triangular elements by default)
+int NbPtOnBorder = 20;
+mesh Th = buildmesh(
+  Circle(NbPtOnBorder)
+);
+
+// Define polynomials (P0 and P1) on the mesh to obtain finite element spaces and display their dimensions
+fespace VhP0(Th, P0);
+fespace VhP1(Th, P1);
+cout << "Dimension of the P0 space: " << VhP0.ndof << endl;
+cout << "Dimension of the P1 space: " << VhP1.ndof << endl;
+
+// Define the same function on both spaces (f : (x, y) --> x + y)
+VhP0 uP0 = x + y;
+VhP1 uP1 = x + y;
+
+// Plot the mesh and the values of the function for both spaces
+plot(Th, wait = 1, cmm="Mesh");
+plot(uP0, Th, value = 1, fill = 1, grey = 1, wait = 1, cmm="P0 solution");
+plot(uP1, Th, value = 1, fill = 1, grey = 1, wait = 1, cmm="P1 solution");
