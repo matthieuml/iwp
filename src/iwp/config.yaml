@@ -1,11 +1,11 @@
 # =========== Experiment ===========
 exp_path: ./runs
 exp_name: default
-device: cpu # Device to run the application on, can be 'cpu' or 'cuda' (default: cpu)
+device: cpu # Device to run the application on, can be either 'cpu' or 'cuda' (default: cpu)
 seed: 42 # Seed for random number generators, fixing the randomness in the application (default: 42)
 
 # =========== Parameters ===========
-lambd: 1e2
+lambd: 1e-6
 mu: 1e-5
 
 # =========== Data ===========
@@ -13,6 +13,6 @@ data_path: ./data
 
 # =========== Logging ===========
 log_to_console: True # Whether to log to console during execution (default: True)
-save_logs: True # Whether to save logs (default: True)
+verbose: False # Whether to log detailed information (default: False)
+save_logs: False # Whether to save logs (default: True)
 log_level: INFO # Logging level for the application (default: INFO)
-verbose: True # Whether to log detailed information (default: False)

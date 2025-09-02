@@ -48,7 +48,7 @@ def load_sparse_matrix(filename: str, is_complex: bool = True) -> coo_matrix:
             logger.error(f"Error reading sparse matrix file {filename}: {e}")
             raise ValueError(f"Error reading sparse matrix file {filename}: {e}")
 
-    return coo_matrix((data, (row_idx, col_idx)), shape=(rows, cols))
+    return coo_matrix((data, (row_idx, col_idx)), shape=(rows, cols)).tocsr()
 
 
 def load_vector(filename: str, is_complex: bool = True) -> np.ndarray:

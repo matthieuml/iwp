@@ -42,7 +42,7 @@ meshL ThL = extract(Th, label = labelObject);
 ThL = OrientNormal(ThL, unbounded = 1);
 
 // Plot the mesh
-plot(Th, wait = true, cmm = "Mesh");
+// plot(Th, wait = true, cmm = "Mesh");
 
 // Define the point in the interior of the internal circle
 int PtInt = Th(0., 0.).region;
@@ -65,11 +65,11 @@ FS0 mRealP0 = n1 - n0; // To have real values for the plot
 int nbiso = 20;
 real[int] viso(nbiso);
 viso = [-3.0, -2.9, -2.8, -2.7, -2.6, -2.5, -2.4, -2.3, -2.2, -2.1, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
-plot(Th, mRealP0, value = 1, fill = 1, grey = 1, wait = true, viso = viso, cmm = "Contrast m in P0");
+// plot(Th, mRealP0, value = 1, fill = 1, grey = 1, wait = true, viso = viso, cmm = "Contrast m in P0");
 
 // Plot the contrast m in P1
 FS1 mRealP1 = n1 - n0; // To have real values for the plot
-plot(Th, mRealP1, value = 1, fill = 1, grey = 1, wait = true, viso = viso, cmm = "Contrast m in P1");
+// plot(Th, mRealP1, value = 1, fill = 1, grey = 1, wait = true, viso = viso, cmm = "Contrast m in P1");
 
 // Export the constrast m
 {

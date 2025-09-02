@@ -6,10 +6,12 @@ import torch
 
 from iwp.algorithms.algorithms import (
     ConstrainedConvexForwardBackward,
+    FISTA,
     ConstrainedConvexGradientDescent,
     ConvexGradientDescent,
     ConvexNesterovAcceleratedGradientDescent,
     StronglyConvexNesterovAcceleratedGradientDescent,
+    plot_all_algorithms_convergence,
 )
 from iwp.data.load_experiment_data import load_experiment_data
 from iwp.utils.config import load_yaml_into_namespace, parse_arguments
@@ -36,6 +38,7 @@ if __name__ == "__main__":
         level=args.log_level,
         log_to_console=args.log_to_console,
     )
+    verbose = args.verbose
 
     # Save the config file in the experiment folder
     copy_file(args.config, os.path.join(args.exp_path, "config.yaml"))
@@ -70,7 +73,7 @@ if __name__ == "__main__":
 
     row_blocks = []
     for i in range(I):
-        blocks = [sp.csr_matrix((L, L))] * I + [B_list[i]]
+        blocks = [sp.csr_matrix((L, L))] * I + [-B_list[i]]
         blocks[i] = sp.csr_matrix(A)
         row = sp.hstack(blocks, format="csr")
         row_blocks.append(row)
@@ -109,7 +112,7 @@ if __name__ == "__main__":
         if np.linalg.norm(Ex) < threshold:
             return (
                 0.5 * np.vdot(Dx_minus_d, Dx_minus_d).real
-                + 0.5 * mu * np.vdot(x, x).real
+                + 0.5 * mu * np.vdot(x[-P:], x[-P:]).real
             )
         else:
             return np.inf
@@ -137,19 +140,22 @@ if __name__ == "__main__":
 
     x_0 = np.zeros(I * L + P)  # shape: (I*L + P,)
 
-    algo = StronglyConvexNesterovAcceleratedGradientDescent(
-        name=args.exp_name,
+    algo_1 = StronglyConvexNesterovAcceleratedGradientDescent(
+        exp_name=args.exp_name,
+        algo_plot_name="P-NAGD",
         f=J_1,
         df=dJ_1,
         K=K_J_1,
         mu=mu,
         logger=logger,
+        verbose=verbose,
     )
-    algo.run(x0=x_0, max_iterations=1000)
-    algo.plot_algorithm_convergence(m, args.visuals_path)
+    algo_1.run(x0=x_0, max_iterations=10000)
+    algo_1.plot_algorithm_convergence(m, args.visuals_path)
 
-    algo = ConstrainedConvexForwardBackward(
-        name=args.exp_name,
+    algo_2 = ConstrainedConvexForwardBackward(
+        exp_name=args.exp_name,
+        algo_plot_name="FB",
         f=J_2,
         D=D,
         D_star=D.conj().T,
@@ -157,15 +163,36 @@ if __name__ == "__main__":
         E_star=E_star,
         d=d,
         mu=mu,
-        gamma=1 / K_J_2,
+        gamma=2 / K_J_2 - 1e-6,
         lambd=1,
+        P=P,
         logger=logger,
+        verbose=verbose,
     )
-    algo.run(x0=x_0, max_iterations=1000)
-    algo.plot_algorithm_convergence(m, args.visuals_path)
+    algo_2.run(x0=x_0, max_iterations=10000)
+    algo_2.plot_algorithm_convergence(m, args.visuals_path)
 
-    algo = ConstrainedConvexGradientDescent(
-        name=args.exp_name,
+    algo_3 = FISTA(
+        exp_name=args.exp_name,
+        algo_plot_name="FISTA",
+        f=J_2,
+        D=D,
+        D_star=D.conj().T,
+        E=E,
+        E_star=E_star,
+        d=d,
+        mu=mu,
+        K=K_J_2,
+        P=P,
+        logger=logger,
+        verbose=verbose,
+    )
+    algo_3.run(x0=x_0, max_iterations=10000)
+    algo_3.plot_algorithm_convergence(m, args.visuals_path)
+
+    algo_4 = ConstrainedConvexGradientDescent(
+        exp_name=args.exp_name,
+        algo_plot_name="C-GD",
         f=J_3,
         A=A,
         A_star=A.conj().T,
@@ -176,6 +203,12 @@ if __name__ == "__main__":
         mu=mu,
         gamma=1 / K_J_3,
         logger=logger,
+        verbose=verbose,
     )
-    algo.run(x0=x_0[-P:], max_iterations=1000)
-    algo.plot_algorithm_convergence(m, args.visuals_path)
+    algo_4.run(x0=x_0[-P:], max_iterations=10000)
+    algo_4.plot_algorithm_convergence(m, args.visuals_path)
+
+    plot_all_algorithms_convergence(
+        algorithms=[algo_1, algo_2, algo_3, algo_4],
+        visuals_path=args.visuals_path,
+    )
