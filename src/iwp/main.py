@@ -5,8 +5,8 @@ import scipy.sparse as sp
 import torch
 
 from iwp.algorithms.algorithms import (
-    ConstrainedConvexForwardBackward,
     FISTA,
+    ConstrainedConvexForwardBackward,
     ConstrainedConvexGradientDescent,
     ConvexGradientDescent,
     ConvexNesterovAcceleratedGradientDescent,
@@ -60,13 +60,13 @@ if __name__ == "__main__":
     P = B_list[0].shape[1]
     logger.info(f"Dimensions: I={I}, J={J}, L={L}, P={P}")
 
-    blocks = []
+    row_blocks = []
     for i in range(I):
-        row_blocks = [sp.csr_matrix((J, L))] * I + [sp.csr_matrix((J, P))]
-        row_blocks[i] = sp.csr_matrix(C)
-        blocks.append(sp.hstack(row_blocks, format="csr"))
+        blocks = [sp.csr_matrix((J, L))] * I + [sp.csr_matrix((J, P))]
+        blocks[i] = sp.csr_matrix(C)
+        row_blocks.append(sp.hstack(blocks, format="csr"))
     D = sp.vstack(
-        blocks, format="csr"
+        row_blocks, format="csr"
     )  # shape: (I*J, I*L + P) if A is (L,L), B_i is (L,P)
 
     d = np.concatenate(d_list, axis=0)  # shape: (I*J,)
@@ -75,8 +75,7 @@ if __name__ == "__main__":
     for i in range(I):
         blocks = [sp.csr_matrix((L, L))] * I + [-B_list[i]]
         blocks[i] = sp.csr_matrix(A)
-        row = sp.hstack(blocks, format="csr")
-        row_blocks.append(row)
+        row_blocks.append(sp.hstack(blocks, format="csr"))
     E = sp.vstack(row_blocks, format="csr")  # shape: (I*L, I*L + P)
     E_star = E.conj().T
 
