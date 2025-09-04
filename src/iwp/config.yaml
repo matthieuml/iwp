@@ -9,10 +9,10 @@ lambd: 1e-6
 mu: 1e-5
 
 # =========== Data ===========
-data_path: ./data
+data_path: ./data/data_backup
 
 # =========== Logging ===========
 log_to_console: True # Whether to log to console during execution (default: True)
 verbose: False # Whether to log detailed information (default: False)
-save_logs: False # Whether to save logs (default: True)
+save_logs: True # Whether to save logs (default: True)
 log_level: INFO # Logging level for the application (default: INFO)

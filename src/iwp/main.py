@@ -6,13 +6,12 @@ import torch
 
 from iwp.algorithms.algorithms import (
     FISTA,
-    ConstrainedConvexForwardBackward,
-    ConstrainedConvexGradientDescent,
-    ConvexGradientDescent,
-    ConvexNesterovAcceleratedGradientDescent,
+    ForwardBackward,
+    GradientDescent,
+    NesterovAcceleratedGradientDescent,
     StronglyConvexNesterovAcceleratedGradientDescent,
-    plot_all_algorithms_convergence,
 )
+from iwp.algorithms.plot import plot_all_algorithms_convergence
 from iwp.data.load_experiment_data import load_experiment_data
 from iwp.utils.config import load_yaml_into_namespace, parse_arguments
 from iwp.utils.logger import setup_logger
@@ -54,6 +53,8 @@ if __name__ == "__main__":
 
     # Load data
     A, B_list, C, d_list, m = load_experiment_data(args.data_path)
+    A_star = A.conj().T
+    C_star = C.conj().T
 
     I = len(B_list)
     J, L = C.shape
@@ -68,6 +69,7 @@ if __name__ == "__main__":
     D = sp.vstack(
         row_blocks, format="csr"
     )  # shape: (I*J, I*L + P) if A is (L,L), B_i is (L,P)
+    D_star = D.conj().T
 
     d = np.concatenate(d_list, axis=0)  # shape: (I*J,)
 
@@ -116,6 +118,15 @@ if __name__ == "__main__":
         else:
             return np.inf
 
+    def grad_J_2(x):
+        reg = np.zeros_like(x)
+        reg[-P:] = mu * x[-P:]
+        return D_star @ (D @ x - d) + reg
+
+    def prox_J_2(x, gamma):
+        w = sp.linalg.spsolve(E @ E_star, E @ x)
+        return x - E_star @ w
+
     K_op_J_2 = D.conj().T @ D + mu * sp.eye(I * L + P)
     K_eigenvalues_J_2 = np.linalg.eigvals(K_op_J_2.toarray())
     K_J_2 = np.max(np.abs(K_eigenvalues_J_2))
@@ -128,6 +139,17 @@ if __name__ == "__main__":
             diff = CA_inv_Bi_m - d_list[i]
             total += 0.5 * np.vdot(diff, diff).real
         return total + 0.5 * mu * np.vdot(m, m).real
+
+    def dJ_3(m):
+        p_sum = sum(
+            B_i.conj().T
+            @ sp.linalg.spsolve(
+                A_star,
+                C_star @ (C @ sp.linalg.spsolve(A, B_i @ m) - d_i),
+            )
+            for B_i, d_i in zip(B_list, d_list)
+        )
+        return p_sum + mu * m
 
     Ainv = sp.linalg.inv(A.tocsc())
     K_op_J_3 = sum(
@@ -152,19 +174,14 @@ if __name__ == "__main__":
     algo_1.run(x0=x_0, max_iterations=10000)
     algo_1.plot_algorithm_convergence(m, args.visuals_path)
 
-    algo_2 = ConstrainedConvexForwardBackward(
+    algo_2 = ForwardBackward(
         exp_name=args.exp_name,
         algo_plot_name="FB",
         f=J_2,
-        D=D,
-        D_star=D.conj().T,
-        E=E,
-        E_star=E_star,
-        d=d,
-        mu=mu,
-        gamma=2 / K_J_2 - 1e-6,
+        grad=grad_J_2,
+        prox=prox_J_2,
+        gamma=2.0 / K_J_2 - 1e-6,
         lambd=1,
-        P=P,
         logger=logger,
         verbose=verbose,
     )
@@ -175,39 +192,41 @@ if __name__ == "__main__":
         exp_name=args.exp_name,
         algo_plot_name="FISTA",
         f=J_2,
-        D=D,
-        D_star=D.conj().T,
-        E=E,
-        E_star=E_star,
-        d=d,
-        mu=mu,
+        grad=grad_J_2,
+        prox=prox_J_2,
         K=K_J_2,
-        P=P,
         logger=logger,
         verbose=verbose,
     )
     algo_3.run(x0=x_0, max_iterations=10000)
     algo_3.plot_algorithm_convergence(m, args.visuals_path)
 
-    algo_4 = ConstrainedConvexGradientDescent(
+    algo_4 = GradientDescent(
         exp_name=args.exp_name,
         algo_plot_name="C-GD",
         f=J_3,
-        A=A,
-        A_star=A.conj().T,
-        C=C,
-        C_star=C.conj().T,
-        B_list=B_list,
-        d_list=d_list,
-        mu=mu,
-        gamma=1 / K_J_3,
+        df=dJ_3,
+        K=K_J_3,
+        gamma=1.0 / K_J_3,
         logger=logger,
         verbose=verbose,
     )
     algo_4.run(x0=x_0[-P:], max_iterations=10000)
     algo_4.plot_algorithm_convergence(m, args.visuals_path)
 
+    algo_5 = NesterovAcceleratedGradientDescent(
+        exp_name=args.exp_name,
+        algo_plot_name="C-NAGD",
+        f=J_3,
+        df=dJ_3,
+        K=K_J_3,
+        logger=logger,
+        verbose=verbose,
+    )
+    algo_5.run(x0=x_0[-P:], max_iterations=10000)
+    algo_5.plot_algorithm_convergence(m, args.visuals_path)
+
     plot_all_algorithms_convergence(
-        algorithms=[algo_1, algo_2, algo_3, algo_4],
+        algorithms=[algo_1, algo_2, algo_3, algo_4, algo_5],
         visuals_path=args.visuals_path,
     )
