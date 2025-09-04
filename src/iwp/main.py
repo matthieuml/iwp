@@ -159,11 +159,23 @@ if __name__ == "__main__":
     K_J_3 = np.max(np.abs(K_eigenvalues_J_3))
     logger.info(f"Lipschitz constant K_J_3: {K_J_3}")
 
-    x_0 = np.zeros(I * L + P)  # shape: (I*L + P,)
+    x_0 = np.zeros(I * L + P, dtype=np.complex128)  # shape: (I*L + P,)
+
+    algo_0 = NesterovAcceleratedGradientDescent(
+        exp_name=args.exp_name,
+        algo_plot_name="P-NAGD",
+        f=J_1,
+        df=dJ_1,
+        K=K_J_1,
+        logger=logger,
+        verbose=verbose,
+    )
+    algo_0.run(x0=x_0, max_iterations=10000)
+    algo_0.plot_algorithm_convergence(m, args.visuals_path)
 
     algo_1 = StronglyConvexNesterovAcceleratedGradientDescent(
         exp_name=args.exp_name,
-        algo_plot_name="P-NAGD",
+        algo_plot_name="P-SCNAGD",
         f=J_1,
         df=dJ_1,
         K=K_J_1,
@@ -206,8 +218,8 @@ if __name__ == "__main__":
         algo_plot_name="C-GD",
         f=J_3,
         df=dJ_3,
-        K=K_J_3,
-        gamma=1.0 / K_J_3,
+        K=K_J_2,
+        gamma=2.0 / K_J_2 - 1e-6,
         logger=logger,
         verbose=verbose,
     )
@@ -219,14 +231,27 @@ if __name__ == "__main__":
         algo_plot_name="C-NAGD",
         f=J_3,
         df=dJ_3,
-        K=K_J_3,
+        K=K_J_2,
         logger=logger,
         verbose=verbose,
     )
     algo_5.run(x0=x_0[-P:], max_iterations=10000)
     algo_5.plot_algorithm_convergence(m, args.visuals_path)
 
+    algo_6 = StronglyConvexNesterovAcceleratedGradientDescent(
+        exp_name=args.exp_name,
+        algo_plot_name="C-SCNAGD",
+        f=J_3,
+        df=dJ_3,
+        K=K_J_2,
+        mu=mu,
+        logger=logger,
+        verbose=verbose,
+    )
+    algo_6.run(x0=x_0[-P:], max_iterations=10000)
+    algo_6.plot_algorithm_convergence(m, args.visuals_path)
+
     plot_all_algorithms_convergence(
-        algorithms=[algo_1, algo_2, algo_3, algo_4, algo_5],
+        algorithms=[algo_0, algo_1, algo_2, algo_3, algo_4, algo_5, algo_6],
         visuals_path=args.visuals_path,
     )

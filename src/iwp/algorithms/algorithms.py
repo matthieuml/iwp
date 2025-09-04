@@ -5,7 +5,6 @@ import tracemalloc
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.sparse as sp
 
 from .metrics import mae, mse
 
@@ -37,19 +36,23 @@ class FixedPointAlgorithm(abc.ABC):
         self.logger.info(
             f"Started {self.algo_plot_name} for a maximum of {self.max_iterations} iterations."
         )
+        # Preallocate arrays to not count them in memory usage
+        self.x_values = np.empty((max_iterations + 1,) + x0.shape, dtype=x0.dtype)
+        self.f_values = np.empty(max_iterations + 1, dtype=float)
+        # Start measuring time and memory
         tracemalloc.start()
         t0 = time.time()
         x = x0
-        self.x_values = [x0]
-        self.f_values = [self.f(x0)]
+        self.x_values[0] = x0
+        self.f_values[0] = self.f(x0)
         self.iteration = 0
         while not self.is_converged(x) and self.iteration < self.max_iterations:
             x = self.step(x)
-            self.x_values.append(x)
-            self.f_values.append(self.f(x))
             self.iteration += 1
+            self.x_values[self.iteration] = x
+            self.f_values[self.iteration] = self.f(x)
             if self.logger:
-                msg = f"Iteration {self.iteration}: f(x) = {self.f_values[-1]:.6f}, time = {time.time() - t0:.3f}s"
+                msg = f"Iteration {self.iteration}: f(x) = {self.f_values[self.iteration]:.6f}, time = {time.time() - t0:.3f}s"
                 (self.logger.info if self.verbose else self.logger.debug)(msg)
         self.cv_time = time.time() - t0
         _, peak = tracemalloc.get_traced_memory()
@@ -62,8 +65,9 @@ class FixedPointAlgorithm(abc.ABC):
                 else f"Stopped after {self.max_iterations} iterations in {self.cv_time:.3f} seconds with {self.memory_used / 1024:.2f} KB memory used."
             )
             self.logger.info(msg)
-        self.x_values = np.array(self.x_values)
-        self.f_values = np.array(self.f_values)
+        # Cut arrays to actual size
+        self.x_values = self.x_values[:self.iteration + 1]
+        self.f_values = self.f_values[:self.iteration + 1]
 
     def plot_algorithm_convergence(self, m, visuals_path, add_marker=False, save=True):
         m_pred = (

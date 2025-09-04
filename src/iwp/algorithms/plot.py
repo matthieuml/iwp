@@ -67,7 +67,6 @@ def plot_all_algorithms_convergence(
                     marker="x",
                     color="black",
                     markersize=10,
-                    label=f"{label_name} stopped",
                 )
             # Draw a dotted line for constant continuation to max_iterations
             if iters < n_iterations:
@@ -81,8 +80,8 @@ def plot_all_algorithms_convergence(
     cv_times = [algo.cv_time for algo in algorithms]
     memory_used_kb = [algo.memory_used / 1024 for algo in algorithms]
     axs[1, 0].barh(algo_plot_names, cv_times, color="skyblue")
-    axs[1, 0].set_xlabel("Convergence Time (s)")
-    axs[1, 0].set_title("Convergence Time")
+    axs[1, 0].set_xlabel("Execution Time (s)")
+    axs[1, 0].set_title("Execution Time")
     axs[1, 1].barh(algo_plot_names, memory_used_kb, color="lightgreen")
     axs[1, 1].set_xlabel("Peak Memory Used (KB)")
     axs[1, 1].set_title("Peak Memory Usage")
