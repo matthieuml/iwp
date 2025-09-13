@@ -68,8 +68,9 @@ class FixedPointAlgorithm(abc.ABC):
         # Cut arrays to actual size
         self.x_values = self.x_values[:self.iteration + 1]
         self.f_values = self.f_values[:self.iteration + 1]
+        return x
 
-    def plot_algorithm_convergence(self, m, visuals_path, add_marker=False, save=True):
+    def plot_algorithm_convergence(self, m, visuals_path, add_marker=False, show=False, save=True):
         m_pred = (
             self.x_values[:, -m.shape[0] :]
             if self.x_values.ndim == 2
@@ -106,12 +107,26 @@ class FixedPointAlgorithm(abc.ABC):
             f"Convergence Plots for {self.algo_plot_name} in {self.cv_time:.3f}s using {self.memory_used / 1024:.2f} KB"
         )
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        if show:
+            plt.show()
         if save:
             file_name = os.path.join(visuals_path, self.algo_plot_name + ".png")
             plt.savefig(file_name)
             if self.logger:
                 self.logger.info(f"Saved convergence plots to {file_name}")
-            plt.close()
+        plt.close()
+
+
+class ClosedFormSolution(FixedPointAlgorithm):
+    def __init__(self, exp_name, algo_plot_name, f, solution, logger=None, verbose=True):
+        super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
+        self.solution = solution
+
+    def step(self, x):
+        return self.solution
+
+    def is_converged(self, x, threshold=1e-6):
+        return True
 
 
 class GradientDescent(FixedPointAlgorithm):

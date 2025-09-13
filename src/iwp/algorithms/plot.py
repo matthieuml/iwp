@@ -28,10 +28,15 @@ def custom_layout(n_plots, cols, fig_kwargs={}):
     return fig, axs
 
 
-def plot_all_algorithms_convergence(
-    algorithms, visuals_path, add_marker=False, save=True
+def plot_all_algorithms_convergence_updated(
+    algorithms, visuals_path, add_marker=False, show=False, save=True, show_time_memory=False
 ):
-    fig, axs = custom_layout(5, 3, fig_kwargs={"figsize": (25, 10)})
+    if show_time_memory:
+        fig, axs = custom_layout(5, 3, fig_kwargs={"figsize": (25, 10)})
+        top_axs = axs[0]
+    else:
+        fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+        top_axs = axs
     algo_plot_names = []
 
     # Find the maximum number of iterations among all algorithms
@@ -41,7 +46,7 @@ def plot_all_algorithms_convergence(
         label_name = algo.algo_plot_name
         algo_plot_names.append(label_name)
         for ax, values, label in zip(
-            axs[0],
+            top_axs,
             [algo.mse_values, algo.mae_values, algo.f_values],
             ["MSE", "MAE", "Objective function"],
         ):
@@ -57,7 +62,6 @@ def plot_all_algorithms_convergence(
             ax.set_ylabel(label)
             if label == "Objective function":
                 ax.set_yscale("log")
-            ax.legend()
 
             # Draw a cross marker if the algorithm stopped before reaching max_iterations
             if iters < algo.max_iterations:
@@ -76,18 +80,26 @@ def plot_all_algorithms_convergence(
                     linestyle=":",
                     color="black",
                 )
+    top_axs[2].legend(
+        loc="center left",
+        bbox_to_anchor=(1.05, 0.5),
+        title="μ values"
+    )
 
-    cv_times = [algo.cv_time for algo in algorithms]
-    memory_used_kb = [algo.memory_used / 1024 for algo in algorithms]
-    axs[1, 0].barh(algo_plot_names, cv_times, color="skyblue")
-    axs[1, 0].set_xlabel("Execution Time (s)")
-    axs[1, 0].set_title("Execution Time")
-    axs[1, 1].barh(algo_plot_names, memory_used_kb, color="lightgreen")
-    axs[1, 1].set_xlabel("Peak Memory Used (KB)")
-    axs[1, 1].set_title("Peak Memory Usage")
+    if show_time_memory:
+        cv_times = [algo.cv_time for algo in algorithms]
+        memory_used_kb = [algo.memory_used / 1024 for algo in algorithms]
+        axs[1, 0].barh(algo_plot_names, cv_times, color="skyblue")
+        axs[1, 0].set_xlabel("Execution Time (s)")
+        axs[1, 0].set_title("Execution Time")
+        axs[1, 1].barh(algo_plot_names, memory_used_kb, color="lightgreen")
+        axs[1, 1].set_xlabel("Peak Memory Used (KB)")
+        axs[1, 1].set_title("Peak Memory Usage")
 
     fig.suptitle("Convergence Plots for Various Algorithms")
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    if show:
+        plt.show()
     if save:
         plt.savefig(os.path.join(visuals_path, "Global.png"))
-        plt.close()
+    plt.close()
