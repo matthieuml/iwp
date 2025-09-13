@@ -26,7 +26,7 @@ border CercleExt(t = 0, 2. * pi) { x = Rext * cos(t); y = Rext * sin(t); label =
 border CercleInt(t = 0, 2. * pi) { x = Rint * cos(t); y = Rint * sin(t); label = LabelInt; }
 
 // Define and build the mesh (triangular elements by default)
-int delta = 10;
+int delta = 1;
 real NbPtOnExtBorder = 2 * pi * Rext * delta / lambda;
 real NbPtOnIntBorder = 2 * pi * Rint * delta / lambda;
 cout << "NbPtOnExtBorder = " << NbPtOnExtBorder << endl;

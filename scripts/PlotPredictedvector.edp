@@ -1,0 +1,74 @@
+load "iovtk"
+
+// Global parameters
+string OutputDir = "../data/";
+
+real k = 1.;
+real lambda = 2. * pi / k;
+
+// Define the geometry (two imbricated circles of radius Rext and Rint)
+real Rext = 5.;
+real Rint = 3.;
+int LabelExt = 1;
+int LabelInt = 2;
+border CercleExt(t = 0, 2. * pi) { x = Rext * cos(t); y = Rext * sin(t); label = LabelExt; }
+border CercleInt(t = 0, 2. * pi) { x = Rint * cos(t); y = Rint * sin(t); label = LabelInt; }
+
+// Define and build the mesh (triangular elements by default)
+int delta = 2;
+real NbPtOnExtBorder = 2 * pi * Rext * delta / lambda;
+real NbPtOnIntBorder = 2 * pi * Rint * delta / lambda;
+cout << "NbPtOnExtBorder = " << NbPtOnExtBorder << endl;
+cout << "NbPtOnIntBorder = " << NbPtOnIntBorder << endl;
+mesh Th = buildmesh(
+  CercleExt(NbPtOnExtBorder)
+  + CercleInt(NbPtOnIntBorder)
+);
+
+// Define an oriented boundary mesh of the external circle
+int[int] labelObject = [LabelExt];
+meshL ThL = extract(Th, label = labelObject);
+ThL = OrientNormal(ThL, unbounded = 1);
+
+// Plot the mesh
+// plot(Th, wait = true, cmm = "Mesh");
+
+// Define polynomials (P0 and P1) on the mesh to obtain finite element spaces and display their dimensions
+fespace FS0(Th, P0);
+fespace FS1(Th, P1);
+fespace FSL(ThL, P1);
+cout << "Dimension of the FS0 space: " << FS0.ndof << endl;
+cout << "Dimension of the FS1 space: " << FS1.ndof << endl;
+cout << "Dimension of the FSL space: " << FSL.ndof << endl;
+
+ifstream file(OutputDir + "PredictedVectorm.dat");
+
+int mDim;
+file >> mDim;
+if (mDim != FS0.ndof) {
+    cout << "Error: vector length " << mDim << " does not match FS0.ndof = " << FS0.ndof << endl;
+    exit(1);
+}
+
+real[int] mRealP0(mDim);
+real[int] mImagP0(mDim);
+for (int i = 0; i < mDim; i++) {
+    string val;
+    file >> val;
+    // Remove parentheses
+    val = val(1:val.length-2);
+    // Find comma position
+    int comma = val.find(",");
+    real re =  atof(val(0:comma));
+    real im =  atof(val(comma+1:val.length));
+    mRealP0[i] = re;
+    mImagP0[i] = im;
+}
+
+FS0 mReal = mRealP0;
+FS0 mImag = mImagP0;
+int nbiso = 20;
+real[int] viso(nbiso);
+viso = [-3.0, -2.9, -2.8, -2.7, -2.6, -2.5, -2.4, -2.3, -2.2, -2.1, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+plot(mReal, value = 1, fill = 1, grey = 0, wait = true, viso=viso, cmm = "Predicted Re(m) in P0");
+plot(mImag, value = 1, fill = 1, grey = 0, wait = true, viso=viso, cmm = "Predicted Im(m) in P0");

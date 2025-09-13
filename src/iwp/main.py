@@ -218,8 +218,8 @@ if __name__ == "__main__":
         algo_plot_name="C-GD",
         f=J_3,
         df=dJ_3,
-        K=K_J_2,
-        gamma=2.0 / K_J_2 - 1e-6,
+        K=K_J_3,
+        gamma=2.0 / K_J_3 - 1e-6,
         logger=logger,
         verbose=verbose,
     )
@@ -231,7 +231,7 @@ if __name__ == "__main__":
         algo_plot_name="C-NAGD",
         f=J_3,
         df=dJ_3,
-        K=K_J_2,
+        K=K_J_3,
         logger=logger,
         verbose=verbose,
     )
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         algo_plot_name="C-SCNAGD",
         f=J_3,
         df=dJ_3,
-        K=K_J_2,
+        K=K_J_3,
         mu=mu,
         logger=logger,
         verbose=verbose,
