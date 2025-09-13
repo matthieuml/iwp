@@ -22,9 +22,6 @@ def custom_layout(n_plots, cols, fig_kwargs={}):
             axs[r, c] = fig.add_subplot(gs[r, 2 * c : 2 * (c + 1)])
         else:
             axs[r, c] = fig.add_subplot(gs[r, 2 * c + extra : 2 * (c + 1) + extra])
-        # Remove this to keep y-axis tick labels on all subplots
-        # if c:
-        #     plt.setp(axs[r, c].get_yticklabels(), visible=False)
     return fig, axs
 
 
