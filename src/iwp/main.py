@@ -160,6 +160,7 @@ if __name__ == "__main__":
     logger.info(f"Lipschitz constant K_J_3: {K_J_3}")
 
     x_0 = np.zeros(I * L + P, dtype=np.complex128)  # shape: (I*L + P,)
+    max_iterations = 10000
 
     algo_0 = NesterovAcceleratedGradientDescent(
         exp_name=args.exp_name,
@@ -170,7 +171,7 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_0.run(x0=x_0, max_iterations=10000)
+    algo_0.run(x0=x_0, max_iterations=max_iterations)
     algo_0.plot_algorithm_convergence(m, args.visuals_path)
 
     algo_1 = StronglyConvexNesterovAcceleratedGradientDescent(
@@ -183,7 +184,7 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_1.run(x0=x_0, max_iterations=10000)
+    algo_1.run(x0=x_0, max_iterations=max_iterations)
     algo_1.plot_algorithm_convergence(m, args.visuals_path)
 
     algo_2 = ForwardBackward(
@@ -197,7 +198,7 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_2.run(x0=x_0, max_iterations=10000)
+    algo_2.run(x0=x_0, max_iterations=max_iterations)
     algo_2.plot_algorithm_convergence(m, args.visuals_path)
 
     algo_3 = FISTA(
@@ -210,7 +211,7 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_3.run(x0=x_0, max_iterations=10000)
+    algo_3.run(x0=x_0, max_iterations=max_iterations)
     algo_3.plot_algorithm_convergence(m, args.visuals_path)
 
     algo_4 = GradientDescent(
@@ -223,7 +224,7 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_4.run(x0=x_0[-P:], max_iterations=10000)
+    algo_4.run(x0=x_0[-P:], max_iterations=max_iterations)
     algo_4.plot_algorithm_convergence(m, args.visuals_path)
 
     algo_5 = NesterovAcceleratedGradientDescent(
@@ -235,7 +236,7 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_5.run(x0=x_0[-P:], max_iterations=10000)
+    algo_5.run(x0=x_0[-P:], max_iterations=max_iterations)
     algo_5.plot_algorithm_convergence(m, args.visuals_path)
 
     algo_6 = StronglyConvexNesterovAcceleratedGradientDescent(
@@ -248,7 +249,7 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_6.run(x0=x_0[-P:], max_iterations=10000)
+    algo_6.run(x0=x_0[-P:], max_iterations=max_iterations)
     algo_6.plot_algorithm_convergence(m, args.visuals_path)
 
     plot_all_algorithms_convergence(

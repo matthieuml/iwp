@@ -25,7 +25,7 @@ def custom_layout(n_plots, cols, fig_kwargs={}):
     return fig, axs
 
 
-def plot_all_algorithms_convergence_updated(
+def plot_all_algorithms_convergence(
     algorithms, visuals_path, add_marker=False, show=False, save=True, show_time_memory=False
 ):
     if show_time_memory:
@@ -80,7 +80,6 @@ def plot_all_algorithms_convergence_updated(
     top_axs[2].legend(
         loc="center left",
         bbox_to_anchor=(1.05, 0.5),
-        title="μ values"
     )
 
     if show_time_memory:
@@ -93,10 +92,9 @@ def plot_all_algorithms_convergence_updated(
         axs[1, 1].set_xlabel("Peak Memory Used (KB)")
         axs[1, 1].set_title("Peak Memory Usage")
 
-    fig.suptitle("Convergence Plots for Various Algorithms")
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     if show:
         plt.show()
     if save:
-        plt.savefig(os.path.join(visuals_path, "Global.png"))
+        plt.savefig(os.path.join(visuals_path, "Global.pdf"))
     plt.close()

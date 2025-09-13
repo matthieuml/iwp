@@ -110,7 +110,7 @@ class FixedPointAlgorithm(abc.ABC):
         if show:
             plt.show()
         if save:
-            file_name = os.path.join(visuals_path, self.algo_plot_name + ".png")
+            file_name = os.path.join(visuals_path, self.algo_plot_name + ".pdf")
             plt.savefig(file_name)
             if self.logger:
                 self.logger.info(f"Saved convergence plots to {file_name}")
