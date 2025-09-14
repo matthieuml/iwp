@@ -80,6 +80,7 @@ def plot_all_algorithms_convergence(
     top_axs[2].legend(
         loc="center left",
         bbox_to_anchor=(1.05, 0.5),
+        title="μ values"
     )
 
     if show_time_memory:
@@ -98,3 +99,32 @@ def plot_all_algorithms_convergence(
     if save:
         plt.savefig(os.path.join(visuals_path, "Global.pdf"))
     plt.close()
+
+def plot_objective_functions_by_algorithm(list_of_algo_lists, add_marker=False):
+    fig, axs  = plt.subplots(1, len(list_of_algo_lists), figsize=(18, 5))
+    for idx, algo_list in enumerate(list_of_algo_lists):
+        for algo in algo_list:
+            label_name = algo.algo_plot_name
+            values = algo.f_values
+            iters = len(values)
+            axs[idx].plot(
+                range(iters),
+                values,
+                label=label_name,
+                marker="o" if add_marker else None,
+                markersize=4 if add_marker else None,
+            )
+            if iters < algo.max_iterations:
+                axs[idx].plot(
+                    iters - 1,
+                    values[-1],
+                    marker="x",
+                    color="black",
+                    markersize=10,
+                )
+        axs[idx].set_xlabel("Iteration")
+        axs[idx].set_ylabel("Objective function")
+        axs[idx].set_yscale("log")
+        axs[idx].legend()
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.show()

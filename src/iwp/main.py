@@ -5,6 +5,7 @@ import scipy.sparse as sp
 import torch
 
 from iwp.algorithms.algorithms import (
+    ClosedFormSolution,
     FISTA,
     ForwardBackward,
     GradientDescent,
@@ -13,6 +14,7 @@ from iwp.algorithms.algorithms import (
 )
 from iwp.algorithms.plot import plot_all_algorithms_convergence
 from iwp.data.load_experiment_data import load_experiment_data
+from iwp.data.export import save_complex_vector, export_all_metrics_to_csv
 from iwp.utils.config import load_yaml_into_namespace, parse_arguments
 from iwp.utils.logger import setup_logger
 from iwp.utils.utils import copy_file, make_dirs, set_seed
@@ -23,7 +25,7 @@ if __name__ == "__main__":
     args = load_yaml_into_namespace(args.config, args)
 
     # Paths to save the results
-    args.exp_path, args.visuals_path = make_dirs(
+    args.exp_path, args.visuals_path, args.results_path = make_dirs(
         os.path.join(args.exp_path, args.exp_name)
     )
 
@@ -102,6 +104,9 @@ if __name__ == "__main__":
         Ex = E @ x
         return D.conj().T @ Dx_minus_d + lambd * E_star @ Ex + mu * x
 
+    def closed_form_solution_J_1():
+        return sp.linalg.spsolve(D.conj().T @ D + 1e-5 * E_star @ E + 1e-7 * sp.eye(I * L + P), D.conj().T @ d)
+
     K_op_J_1 = D.conj().T @ D + lambd * E_star @ E + mu * sp.eye(I * L + P)
     K_eigenvalues_J_1 = np.linalg.eigvals(K_op_J_1.toarray())
     K_J_1 = np.max(np.abs(K_eigenvalues_J_1))
@@ -160,48 +165,22 @@ if __name__ == "__main__":
     logger.info(f"Lipschitz constant K_J_3: {K_J_3}")
 
     x_0 = np.zeros(I * L + P, dtype=np.complex128)  # shape: (I*L + P,)
-    max_iterations = 10000
+    max_iterations = 1000
 
-    algo_0 = NesterovAcceleratedGradientDescent(
+    algo_1 = ClosedFormSolution(
         exp_name=args.exp_name,
         algo_plot_name="P-NAGD",
         f=J_1,
-        df=dJ_1,
-        K=K_J_1,
+        solution=closed_form_solution_J_1(),
         logger=logger,
         verbose=verbose,
     )
-    algo_0.run(x0=x_0, max_iterations=max_iterations)
-    algo_0.plot_algorithm_convergence(m, args.visuals_path)
-
-    algo_1 = StronglyConvexNesterovAcceleratedGradientDescent(
-        exp_name=args.exp_name,
-        algo_plot_name="P-SCNAGD",
-        f=J_1,
-        df=dJ_1,
-        K=K_J_1,
-        mu=mu,
-        logger=logger,
-        verbose=verbose,
-    )
-    algo_1.run(x0=x_0, max_iterations=max_iterations)
+    x_1 = algo_1.run(x0=x_0, max_iterations=max_iterations)
     algo_1.plot_algorithm_convergence(m, args.visuals_path)
+    export_all_metrics_to_csv(algo_1, os.path.join(args.results_path, "P-NAGD_Metrics.csv"))
+    save_complex_vector(os.path.join(args.results_path, "P-NAGD_PredictedVectorm.dat"), x_1[-P:])
 
-    algo_2 = ForwardBackward(
-        exp_name=args.exp_name,
-        algo_plot_name="FB",
-        f=J_2,
-        grad=grad_J_2,
-        prox=prox_J_2,
-        gamma=2.0 / K_J_2 - 1e-6,
-        lambd=1,
-        logger=logger,
-        verbose=verbose,
-    )
-    algo_2.run(x0=x_0, max_iterations=max_iterations)
-    algo_2.plot_algorithm_convergence(m, args.visuals_path)
-
-    algo_3 = FISTA(
+    algo_2 = FISTA(
         exp_name=args.exp_name,
         algo_plot_name="FISTA",
         f=J_2,
@@ -211,23 +190,12 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_3.run(x0=x_0, max_iterations=max_iterations)
-    algo_3.plot_algorithm_convergence(m, args.visuals_path)
+    x_2 = algo_2.run(x0=x_0, max_iterations=max_iterations)
+    algo_2.plot_algorithm_convergence(m, args.visuals_path)
+    export_all_metrics_to_csv(algo_2, os.path.join(args.results_path, "FISTA_Metrics.csv"))
+    save_complex_vector(os.path.join(args.results_path, "FISTA_PredictedVectorm.dat"), x_2[-P:])
 
-    algo_4 = GradientDescent(
-        exp_name=args.exp_name,
-        algo_plot_name="C-GD",
-        f=J_3,
-        df=dJ_3,
-        K=K_J_3,
-        gamma=2.0 / K_J_3 - 1e-6,
-        logger=logger,
-        verbose=verbose,
-    )
-    algo_4.run(x0=x_0[-P:], max_iterations=max_iterations)
-    algo_4.plot_algorithm_convergence(m, args.visuals_path)
-
-    algo_5 = NesterovAcceleratedGradientDescent(
+    algo_3 = NesterovAcceleratedGradientDescent(
         exp_name=args.exp_name,
         algo_plot_name="C-NAGD",
         f=J_3,
@@ -236,23 +204,15 @@ if __name__ == "__main__":
         logger=logger,
         verbose=verbose,
     )
-    algo_5.run(x0=x_0[-P:], max_iterations=max_iterations)
-    algo_5.plot_algorithm_convergence(m, args.visuals_path)
-
-    algo_6 = StronglyConvexNesterovAcceleratedGradientDescent(
-        exp_name=args.exp_name,
-        algo_plot_name="C-SCNAGD",
-        f=J_3,
-        df=dJ_3,
-        K=K_J_3,
-        mu=mu,
-        logger=logger,
-        verbose=verbose,
-    )
-    algo_6.run(x0=x_0[-P:], max_iterations=max_iterations)
-    algo_6.plot_algorithm_convergence(m, args.visuals_path)
+    m_3 = algo_3.run(x0=x_0[-P:], max_iterations=max_iterations)
+    algo_3.plot_algorithm_convergence(m, args.visuals_path)
+    export_all_metrics_to_csv(algo_3, os.path.join(args.results_path, "C-NAGD_Metrics.csv"))
+    save_complex_vector(os.path.join(args.results_path, "C-NAGD_PredictedVectorm.dat"), m_3)
 
     plot_all_algorithms_convergence(
-        algorithms=[algo_0, algo_1, algo_2, algo_3, algo_4, algo_5, algo_6],
+        algorithms=[algo_1, algo_2, algo_3],
         visuals_path=args.visuals_path,
+        show=False,
+        save=True,
+        show_time_memory=True,
     )

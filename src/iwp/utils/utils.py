@@ -18,7 +18,7 @@ def make_dirs(
         experiment_path (str): path to the experiment
 
     Returns:
-        tuple: A tuple containing the experiment path and the visuals path.
+        tuple: A tuple containing the experiment path, the visuals and results path.
     """
     if not os.path.exists(experiment_path):
         os.makedirs(experiment_path)
@@ -36,8 +36,11 @@ def make_dirs(
     visuals_path = os.path.join(experiment_path, "visuals")
     os.makedirs(visuals_path, exist_ok=True)
     logger.debug(f"Created directories for the experiment at {visuals_path}")
+    results_path = os.path.join(experiment_path, "results")
+    os.makedirs(results_path, exist_ok=True)
+    logger.debug(f"Created directories for the experiment at {results_path}")
 
-    return experiment_path, visuals_path
+    return experiment_path, visuals_path, results_path
 
 
 def copy_file(source: str, destination: str) -> None:
