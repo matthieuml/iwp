@@ -72,11 +72,13 @@ class FixedPointAlgorithm(abc.ABC):
             )
             self.logger.info(msg)
         # Cut arrays to actual size
-        self.x_values = self.x_values[:self.iteration + 1]
-        self.f_values = self.f_values[:self.iteration + 1]
+        self.x_values = self.x_values[: self.iteration + 1]
+        self.f_values = self.f_values[: self.iteration + 1]
         return x
 
-    def plot_algorithm_convergence(self, m, visuals_path, add_marker=False, show=False, save=True):
+    def plot_algorithm_convergence(
+        self, m, visuals_path, add_marker=False, show=False, save=True
+    ):
         m_pred = (
             self.x_values[:, -m.shape[0] :]
             if self.x_values.ndim == 2
@@ -124,7 +126,9 @@ class FixedPointAlgorithm(abc.ABC):
 
 
 class ClosedFormSolution(FixedPointAlgorithm):
-    def __init__(self, exp_name, algo_plot_name, f, solution, logger=None, verbose=True):
+    def __init__(
+        self, exp_name, algo_plot_name, f, solution, logger=None, verbose=True
+    ):
         super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
         self.solution = solution
 

@@ -26,7 +26,12 @@ def custom_layout(n_plots, cols, fig_kwargs={}):
 
 
 def plot_all_algorithms_convergence(
-    algorithms, visuals_path, add_marker=False, show=False, save=True, show_time_memory=False
+    algorithms,
+    visuals_path,
+    add_marker=False,
+    show=False,
+    save=True,
+    show_time_memory=False,
 ):
     if show_time_memory:
         _, axs = custom_layout(5, 3, fig_kwargs={"figsize": (25, 12)})
@@ -98,8 +103,9 @@ def plot_all_algorithms_convergence(
         plt.savefig(os.path.join(visuals_path, "Global.pdf"))
     plt.close()
 
+
 def plot_objective_functions_by_algorithm(list_of_algo_lists, add_marker=False):
-    fig, axs  = plt.subplots(1, len(list_of_algo_lists), figsize=(18, 5))
+    fig, axs = plt.subplots(1, len(list_of_algo_lists), figsize=(18, 5))
     for idx, algo_list in enumerate(list_of_algo_lists):
         for algo in algo_list:
             label_name = algo.algo_plot_name

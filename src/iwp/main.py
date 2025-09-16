@@ -5,13 +5,13 @@ import scipy.sparse as sp
 import torch
 
 from iwp.algorithms.algorithms import (
-    ClosedFormSolution,
     FISTA,
+    ClosedFormSolution,
     NesterovAcceleratedGradientDescent,
 )
 from iwp.algorithms.plot import plot_all_algorithms_convergence
+from iwp.data.export import export_all_metrics_to_csv, save_complex_vector
 from iwp.data.load_experiment_data import load_experiment_data
-from iwp.data.export import save_complex_vector, export_all_metrics_to_csv
 from iwp.utils.config import load_yaml_into_namespace, parse_arguments
 from iwp.utils.logger import setup_logger
 from iwp.utils.utils import copy_file, make_dirs, set_seed
@@ -97,6 +97,7 @@ if __name__ == "__main__":
                 + 0.5 * lambd * np.vdot(Ex, Ex).real
                 + 0.5 * mu * np.vdot(x, x).real
             )
+
         return J_1
 
     def get_dJ_1(d, lambd, mu):
@@ -104,14 +105,16 @@ if __name__ == "__main__":
             Dx_minus_d = D @ x - d
             Ex = E @ x
             return D.conj().T @ Dx_minus_d + lambd * E_star @ Ex + mu * x
+
         return dJ_1
 
     def get_closed_form_solution_J_1(d, lambd, mu):
         def closed_form_solution_J_1():
             return sp.linalg.spsolve(
                 D.conj().T @ D + lambd * E_star @ E + mu * sp.eye(I * L + P),
-                D.conj().T @ d
+                D.conj().T @ d,
             )
+
         return closed_form_solution_J_1
 
     def get_K_J_1(lambd, mu):
@@ -130,6 +133,7 @@ if __name__ == "__main__":
                 )
             else:
                 return np.inf
+
         return J_2
 
     def get_grad_J_2(d, mu):
@@ -137,12 +141,14 @@ if __name__ == "__main__":
             reg = np.zeros_like(x)
             reg[-P:] = mu * x[-P:]
             return D_star @ (D @ x - d) + reg
+
         return grad_J_2
 
     def get_prox_J_2():
         def prox_J_2(x, gamma):
             w = sp.linalg.spsolve(E @ E_star, E @ x)
             return x - E_star @ w
+
         return prox_J_2
 
     def get_K_J_2(mu):
@@ -158,6 +164,7 @@ if __name__ == "__main__":
                 diff = CA_inv_Bi_m - d_list[i]
                 total += 0.5 * np.vdot(diff, diff).real
             return total + 0.5 * mu * np.vdot(m, m).real
+
         return J_3
 
     def get_dJ_3(d_list, mu):
@@ -171,6 +178,7 @@ if __name__ == "__main__":
                 for B_i, d_i in zip(B_list, d_list)
             )
             return p_sum + mu * m
+
         return dJ_3
 
     def get_K_J_3(mu):
@@ -215,8 +223,12 @@ if __name__ == "__main__":
     )
     x_1 = algo_1.run(x0=x_0, max_iterations=max_iterations)
     algo_1.plot_algorithm_convergence(m, args.visuals_path)
-    export_all_metrics_to_csv(algo_1, os.path.join(args.results_path, "P-ClosedForm_Metrics.csv"))
-    save_complex_vector(os.path.join(args.results_path, "P-ClosedForm_PredictedVectorm.dat"), x_1[-P:])
+    export_all_metrics_to_csv(
+        algo_1, os.path.join(args.results_path, "P-ClosedForm_Metrics.csv")
+    )
+    save_complex_vector(
+        os.path.join(args.results_path, "P-ClosedForm_PredictedVectorm.dat"), x_1[-P:]
+    )
 
     algo_2 = FISTA(
         exp_name=args.exp_name,
@@ -230,8 +242,12 @@ if __name__ == "__main__":
     )
     x_2 = algo_2.run(x0=x_0, max_iterations=max_iterations)
     algo_2.plot_algorithm_convergence(m, args.visuals_path)
-    export_all_metrics_to_csv(algo_2, os.path.join(args.results_path, "FISTA_Metrics.csv"))
-    save_complex_vector(os.path.join(args.results_path, "FISTA_PredictedVectorm.dat"), x_2[-P:])
+    export_all_metrics_to_csv(
+        algo_2, os.path.join(args.results_path, "FISTA_Metrics.csv")
+    )
+    save_complex_vector(
+        os.path.join(args.results_path, "FISTA_PredictedVectorm.dat"), x_2[-P:]
+    )
 
     algo_3 = NesterovAcceleratedGradientDescent(
         exp_name=args.exp_name,
@@ -244,8 +260,12 @@ if __name__ == "__main__":
     )
     m_3 = algo_3.run(x0=x_0[-P:], max_iterations=max_iterations)
     algo_3.plot_algorithm_convergence(m, args.visuals_path)
-    export_all_metrics_to_csv(algo_3, os.path.join(args.results_path, "C-NAGD_Metrics.csv"))
-    save_complex_vector(os.path.join(args.results_path, "C-NAGD_PredictedVectorm.dat"), m_3)
+    export_all_metrics_to_csv(
+        algo_3, os.path.join(args.results_path, "C-NAGD_Metrics.csv")
+    )
+    save_complex_vector(
+        os.path.join(args.results_path, "C-NAGD_PredictedVectorm.dat"), m_3
+    )
 
     plot_all_algorithms_convergence(
         algorithms=[algo_1, algo_2, algo_3],
@@ -260,7 +280,9 @@ if __name__ == "__main__":
     if args.enable_noise:
         noise_level = float(args.noise_level)
         samples = int(args.samples)
-        logger.info(f"Adding Gaussian noise with standard deviation {noise_level} for {samples} samples.")
+        logger.info(
+            f"Adding Gaussian noise with standard deviation {noise_level} for {samples} samples."
+        )
 
         # Initialize arrays for metrics: shape (3, samples)
         mse_array = np.zeros((3, samples))
@@ -272,8 +294,11 @@ if __name__ == "__main__":
 
             # Add noise to the observations
             d_list_noisy = [
-                d_i + noise_level * (
-                np.random.normal(size=d_i.shape) + 1j * np.random.normal(size=d_i.shape)
+                d_i
+                + noise_level
+                * (
+                    np.random.normal(size=d_i.shape)
+                    + 1j * np.random.normal(size=d_i.shape)
                 )
                 for d_i in d_list
             ]
@@ -282,7 +307,9 @@ if __name__ == "__main__":
             # Get functions and keep the same Lipschitz constants
             J_1_noisy = get_J_1(d_noisy, lambd, mu_1)
             dJ_1_noisy = get_dJ_1(d_noisy, lambd, mu_1)
-            closed_form_solution_J_1_noisy = get_closed_form_solution_J_1(d_noisy, lambd, mu_1)
+            closed_form_solution_J_1_noisy = get_closed_form_solution_J_1(
+                d_noisy, lambd, mu_1
+            )
 
             J_2_noisy = get_J_2(d_noisy, mu_2)
             grad_J_2_noisy = get_grad_J_2(d_noisy, mu_2)
@@ -290,7 +317,7 @@ if __name__ == "__main__":
 
             J_3_noisy = get_J_3(d_list_noisy, mu_2)
             dJ_3_noisy = get_dJ_3(d_list_noisy, mu_2)
-            
+
             # Run algorithms
             algo_1_noisy = ClosedFormSolution(
                 exp_name=args.exp_name,
@@ -302,9 +329,17 @@ if __name__ == "__main__":
             )
 
             x_1_noisy = algo_1_noisy.run(x0=x_0, max_iterations=max_iterations)
-            algo_1_noisy.plot_algorithm_convergence(m, args.visuals_path, show=False, save=False)
+            algo_1_noisy.plot_algorithm_convergence(
+                m, args.visuals_path, show=False, save=False
+            )
             if idx == 0:
-                save_complex_vector(os.path.join(args.results_path, f"P-ClosedForm_noise={noise_level}_PredictedVectorm.dat"), x_1_noisy[-P:])
+                save_complex_vector(
+                    os.path.join(
+                        args.results_path,
+                        f"P-ClosedForm_noise={noise_level}_PredictedVectorm.dat",
+                    ),
+                    x_1_noisy[-P:],
+                )
             mse_array[0, sample] = algo_1_noisy.mse_values[-1]
             mae_array[0, sample] = algo_1_noisy.mae_values[-1]
             f_array[0, sample] = algo_1_noisy.f_values[-1]
@@ -320,9 +355,17 @@ if __name__ == "__main__":
                 verbose=args.verbose,
             )
             x_2_noisy = algo_2_noisy.run(x0=x_0, max_iterations=max_iterations)
-            algo_2_noisy.plot_algorithm_convergence(m, args.visuals_path, show=False, save=False)
+            algo_2_noisy.plot_algorithm_convergence(
+                m, args.visuals_path, show=False, save=False
+            )
             if idx == 0:
-                save_complex_vector(os.path.join(args.results_path, f"FISTA_noise={noise_level}_PredictedVectorm.dat"), x_2_noisy[-P:])
+                save_complex_vector(
+                    os.path.join(
+                        args.results_path,
+                        f"FISTA_noise={noise_level}_PredictedVectorm.dat",
+                    ),
+                    x_2_noisy[-P:],
+                )
             mse_array[1, sample] = algo_2_noisy.mse_values[-1]
             mae_array[1, sample] = algo_2_noisy.mae_values[-1]
             f_array[1, sample] = algo_2_noisy.f_values[-1]
@@ -337,9 +380,17 @@ if __name__ == "__main__":
                 verbose=args.verbose,
             )
             m_3_noisy = algo_3_noisy.run(x0=x_0[-P:], max_iterations=max_iterations)
-            algo_3_noisy.plot_algorithm_convergence(m, args.visuals_path, show=False, save=False)
+            algo_3_noisy.plot_algorithm_convergence(
+                m, args.visuals_path, show=False, save=False
+            )
             if idx == 0:
-                save_complex_vector(os.path.join(args.results_path, f"C-NAGD_noise={noise_level}_PredictedVectorm.dat"), m_3_noisy)
+                save_complex_vector(
+                    os.path.join(
+                        args.results_path,
+                        f"C-NAGD_noise={noise_level}_PredictedVectorm.dat",
+                    ),
+                    m_3_noisy,
+                )
             mse_array[2, sample] = algo_3_noisy.mse_values[-1]
             mae_array[2, sample] = algo_3_noisy.mae_values[-1]
             f_array[2, sample] = algo_3_noisy.f_values[-1]
