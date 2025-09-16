@@ -15,7 +15,7 @@ border CercleExt(t = 0, 2. * pi) { x = Rext * cos(t); y = Rext * sin(t); label =
 border CercleInt(t = 0, 2. * pi) { x = Rint * cos(t); y = Rint * sin(t); label = LabelInt; }
 
 // Define and build the mesh (triangular elements by default)
-int delta = 1;
+int delta = 10;
 real NbPtOnExtBorder = 2 * pi * Rext * delta / lambda;
 real NbPtOnIntBorder = 2 * pi * Rint * delta / lambda;
 cout << "NbPtOnExtBorder = " << NbPtOnExtBorder << endl;
@@ -42,9 +42,35 @@ cout << "Dimension of the FS1 space: " << FS1.ndof << endl;
 cout << "Dimension of the FSL space: " << FSL.ndof << endl;
 
 // Read the predicted vector m
-ifstream file(OutputDir + "PredictedVectorm.dat");
+ifstream filePred(OutputDir + "PredictedVectorm.dat");
 
 // Check the dimension of the vector
+int mPredDim;
+filePred >> mPredDim;
+if (mPredDim != FS0.ndof) {
+    cout << "Error: vector length " << mPredDim << " does not match FS0.ndof = " << FS0.ndof << endl;
+    exit(1);
+}
+
+real[int] mPredReal(mPredDim);
+real[int] mPredImag(mPredDim);
+for (int i = 0; i < mPredDim; i++) {
+    string val;
+    filePred >> val;
+    // Remove parentheses
+    val = val(1:val.length-2);
+    // Find comma position
+    int comma = val.find(",");
+    // Extract real and imaginary parts
+    real re =  atof(val(0:comma));
+    real im =  atof(val(comma+1:val.length));
+    mPredReal[i] = re;
+    mPredImag[i] = im;
+}
+
+// Read the vector m
+ifstream file(OutputDir + "Vectorm.dat");
+
 int mDim;
 file >> mDim;
 if (mDim != FS0.ndof) {
@@ -52,8 +78,8 @@ if (mDim != FS0.ndof) {
     exit(1);
 }
 
-real[int] mRealP0(mDim);
-real[int] mImagP0(mDim);
+real[int] mReal(mDim);
+real[int] mImag(mDim);
 for (int i = 0; i < mDim; i++) {
     string val;
     file >> val;
@@ -64,15 +90,18 @@ for (int i = 0; i < mDim; i++) {
     // Extract real and imaginary parts
     real re =  atof(val(0:comma));
     real im =  atof(val(comma+1:val.length));
-    mRealP0[i] = re;
-    mImagP0[i] = im;
+    mReal[i] = re;
+    mImag[i] = im;
 }
 
 // Define finite element object with extracted values
-FS0 mReal = mRealP0;
-FS0 mImag = mImagP0;
+FS0 mPredRealP0 = mPredReal;
+FS0 mPredImagP0 = mPredImag;
+FS0 mRealP0 = mReal;
+FS0 mImagP0 = mImag; // m is real, so we don't use this feature
 int nbiso = 20;
 real[int] viso(nbiso);
 viso = [-3.2, -3.1, -3.0, -2.9, -2.8, -2.7, -2.6, -2.5, -2.4, -2.3, -2.2, -2.1, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2];
-// plot(mReal, value = 1, fill = 1, grey = 0, wait = true, viso=viso, cmm = "Predicted Re(m) in P0");
-// plot(mImag, value = 1, fill = 1, grey = 0, wait = true, viso=viso, cmm = "Predicted Im(m) in P0");
+// plot(mRealP0, value = 1, fill = 1, grey = 0, wait = true, viso=viso, cmm = "Re(m) in P0");
+// plot(mPredRealP0, value = 1, fill = 1, grey = 0, wait = true, viso=viso, cmm = "Predicted Re(m) in P0");
+// plot(mPredImagP0, value = 1, fill = 1, grey = 0, wait = true, viso=viso, cmm = "Predicted Im(m) in P0");

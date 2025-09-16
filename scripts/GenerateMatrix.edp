@@ -26,7 +26,7 @@ border CercleExt(t = 0, 2. * pi) { x = Rext * cos(t); y = Rext * sin(t); label =
 border CercleInt(t = 0, 2. * pi) { x = Rint * cos(t); y = Rint * sin(t); label = LabelInt; }
 
 // Define and build the mesh (triangular elements by default)
-int delta = 1;
+int delta = 10;
 real NbPtOnExtBorder = 2 * pi * Rext * delta / lambda;
 real NbPtOnIntBorder = 2 * pi * Rint * delta / lambda;
 cout << "NbPtOnExtBorder = " << NbPtOnExtBorder << endl;
@@ -38,8 +38,8 @@ mesh Th = buildmesh(
 
 // Define an oriented boundary mesh of the external circle
 int[int] labelObject = [LabelExt];
-meshL ThL = extract(Th, label = labelObject);
-ThL = OrientNormal(ThL, unbounded = 1);
+meshL ThN = extract(Th, label = labelObject);
+ThN = OrientNormal(ThN, unbounded = 1);
 
 // Plot the mesh
 // plot(Th, wait = true, cmm = "Mesh");
@@ -50,7 +50,7 @@ int PtInt = Th(0., 0.).region;
 // Define polynomials (P0 and P1) on the mesh to obtain finite element spaces and display their dimensions
 fespace FS0(Th, P0);
 fespace FS1(Th, P1);
-fespace FSL(ThL, P1);
+fespace FSL(ThN, P1);
 cout << "Dimension of the FS0 space: " << FS0.ndof << endl;
 cout << "Dimension of the FS1 space: " << FS1.ndof << endl;
 cout << "Dimension of the FSL space: " << FSL.ndof << endl;
@@ -124,7 +124,7 @@ for (int itercapteur = 0; itercapteur < I; itercapteur++) {
 
   // Define the sesquilinear form of the right-hand side of the system.
   // Then, discretize the operator using the Galerkin method
-  varf Lin(u, v) = int2d(Th)(u * k^2 * v * uIncident);
+  varf Lin(u, v) = - int2d(Th)(u * k^2 * v * uIncident);
   matrix<complex> B = Lin(FS0, FS1);
 
   // Export the matrix B
@@ -136,7 +136,7 @@ for (int itercapteur = 0; itercapteur < I; itercapteur++) {
   // Define the right-hand side of the system
   // to compute the scattered wave function usol.
   // Then, obtain the measurements
-  varf LinIndice(unused, v) = int2d(Th)(m * k^2 * v * uIncident);
+  varf LinIndice(unused, v) = - int2d(Th)(m * k^2 * v * uIncident);
   complex[int] rhs = LinIndice(0., FS1);
 
   FS1<complex> usol;
