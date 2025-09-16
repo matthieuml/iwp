@@ -1,8 +1,7 @@
-# Runs
-runs
-
-# Data
-/data
+# Exclude runs and data
+runs/*
+data/*
+!.gitkeep
 
 # Pixi environments
 .pixi
