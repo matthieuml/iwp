@@ -54,6 +54,12 @@ class FixedPointAlgorithm(abc.ABC):
             if self.logger:
                 msg = f"Iteration {self.iteration}: f(x) = {self.f_values[self.iteration]:.6f}, time = {time.time() - t0:.3f}s"
                 (self.logger.info if self.verbose else self.logger.debug)(msg)
+        # Special case for the closed-form algorithm
+        if self.iteration == 0:
+            x = self.step(x)
+            self.iteration += 1
+            self.x_values[self.iteration] = x
+            self.f_values[self.iteration] = self.f(x)
         self.cv_time = time.time() - t0
         _, peak = tracemalloc.get_traced_memory()
         self.memory_used = peak
@@ -123,7 +129,7 @@ class ClosedFormSolution(FixedPointAlgorithm):
         self.solution = solution
 
     def step(self, x):
-        return self.solution
+        return self.solution()
 
     def is_converged(self, x, threshold=1e-6):
         return True

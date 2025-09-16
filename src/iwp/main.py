@@ -7,10 +7,7 @@ import torch
 from iwp.algorithms.algorithms import (
     ClosedFormSolution,
     FISTA,
-    ForwardBackward,
-    GradientDescent,
     NesterovAcceleratedGradientDescent,
-    StronglyConvexNesterovAcceleratedGradientDescent,
 )
 from iwp.algorithms.plot import plot_all_algorithms_convergence
 from iwp.data.load_experiment_data import load_experiment_data
@@ -39,7 +36,6 @@ if __name__ == "__main__":
         level=args.log_level,
         log_to_console=args.log_to_console,
     )
-    verbose = args.verbose
 
     # Save the config file in the experiment folder
     copy_file(args.config, os.path.join(args.exp_path, "config.yaml"))
@@ -84,101 +80,143 @@ if __name__ == "__main__":
     E_star = E.conj().T
 
     lambd = float(args.lambd)
-    mu = float(args.mu)
+    mu_1 = float(args.mu_1)
+    mu_2 = float(args.mu_2)
+    mu_3 = float(args.mu_3)
 
     K_eigenvalues_A = np.linalg.eigvals((A.conj().T @ A).toarray())
     K_A = np.max(np.abs(K_eigenvalues_A))
     logger.info(f"Lipschitz constant K_A: {K_A}")
 
-    def J_1(x):
-        Dx_minus_d = D @ x - d
-        Ex = E @ x
-        return (
-            0.5 * np.vdot(Dx_minus_d, Dx_minus_d).real
-            + 0.5 * lambd * np.vdot(Ex, Ex).real
-            + 0.5 * mu * np.vdot(x, x).real
-        )
-
-    def dJ_1(x):
-        Dx_minus_d = D @ x - d
-        Ex = E @ x
-        return D.conj().T @ Dx_minus_d + lambd * E_star @ Ex + mu * x
-
-    def closed_form_solution_J_1():
-        return sp.linalg.spsolve(D.conj().T @ D + 1e-5 * E_star @ E + 1e-7 * sp.eye(I * L + P), D.conj().T @ d)
-
-    K_op_J_1 = D.conj().T @ D + lambd * E_star @ E + mu * sp.eye(I * L + P)
-    K_eigenvalues_J_1 = np.linalg.eigvals(K_op_J_1.toarray())
-    K_J_1 = np.max(np.abs(K_eigenvalues_J_1))
-    logger.info(f"Lipschitz constant K_J_1: {K_J_1}")
-
-    def J_2(x, threshold=1e-6):
-        Dx_minus_d = D @ x - d
-        Ex = E @ x
-        if np.linalg.norm(Ex) < threshold:
+    def get_J_1(d, lambd, mu):
+        def J_1(x):
+            Dx_minus_d = D @ x - d
+            Ex = E @ x
             return (
                 0.5 * np.vdot(Dx_minus_d, Dx_minus_d).real
-                + 0.5 * mu * np.vdot(x[-P:], x[-P:]).real
+                + 0.5 * lambd * np.vdot(Ex, Ex).real
+                + 0.5 * mu * np.vdot(x, x).real
             )
-        else:
-            return np.inf
+        return J_1
 
-    def grad_J_2(x):
-        reg = np.zeros_like(x)
-        reg[-P:] = mu * x[-P:]
-        return D_star @ (D @ x - d) + reg
+    def get_dJ_1(d, lambd, mu):
+        def dJ_1(x):
+            Dx_minus_d = D @ x - d
+            Ex = E @ x
+            return D.conj().T @ Dx_minus_d + lambd * E_star @ Ex + mu * x
+        return dJ_1
 
-    def prox_J_2(x, gamma):
-        w = sp.linalg.spsolve(E @ E_star, E @ x)
-        return x - E_star @ w
+    def get_closed_form_solution_J_1(d, lambd, mu):
+        def closed_form_solution_J_1():
+            return sp.linalg.spsolve(
+                D.conj().T @ D + lambd * E_star @ E + mu * sp.eye(I * L + P),
+                D.conj().T @ d
+            )
+        return closed_form_solution_J_1
 
-    K_op_J_2 = D.conj().T @ D + mu * sp.eye(I * L + P)
-    K_eigenvalues_J_2 = np.linalg.eigvals(K_op_J_2.toarray())
-    K_J_2 = np.max(np.abs(K_eigenvalues_J_2))
+    def get_K_J_1(lambd, mu):
+        K_op_J_1 = D.conj().T @ D + lambd * E_star @ E + mu * sp.eye(I * L + P)
+        K_eigenvalues_J_1 = np.linalg.eigvals(K_op_J_1.toarray())
+        return np.max(np.abs(K_eigenvalues_J_1))
+
+    def get_J_2(d, mu, threshold=1e-6):
+        def J_2(x):
+            Dx_minus_d = D @ x - d
+            Ex = E @ x
+            if np.linalg.norm(Ex) < threshold:
+                return (
+                    0.5 * np.vdot(Dx_minus_d, Dx_minus_d).real
+                    + 0.5 * mu * np.vdot(x[-P:], x[-P:]).real
+                )
+            else:
+                return np.inf
+        return J_2
+
+    def get_grad_J_2(d, mu):
+        def grad_J_2(x):
+            reg = np.zeros_like(x)
+            reg[-P:] = mu * x[-P:]
+            return D_star @ (D @ x - d) + reg
+        return grad_J_2
+
+    def get_prox_J_2():
+        def prox_J_2(x, gamma):
+            w = sp.linalg.spsolve(E @ E_star, E @ x)
+            return x - E_star @ w
+        return prox_J_2
+
+    def get_K_J_2(mu):
+        K_op_J_2 = D.conj().T @ D + mu * sp.eye(I * L + P)
+        K_eigenvalues_J_2 = np.linalg.eigvals(K_op_J_2.toarray())
+        return np.max(np.abs(K_eigenvalues_J_2))
+
+    def get_J_3(d_list, mu):
+        def J_3(m):
+            total = 0.0
+            for i in range(len(B_list)):
+                CA_inv_Bi_m = C @ sp.linalg.spsolve(A, B_list[i] @ m)
+                diff = CA_inv_Bi_m - d_list[i]
+                total += 0.5 * np.vdot(diff, diff).real
+            return total + 0.5 * mu * np.vdot(m, m).real
+        return J_3
+
+    def get_dJ_3(d_list, mu):
+        def dJ_3(m):
+            p_sum = sum(
+                B_i.conj().T
+                @ sp.linalg.spsolve(
+                    A_star,
+                    C_star @ (C @ sp.linalg.spsolve(A, B_i @ m) - d_i),
+                )
+                for B_i, d_i in zip(B_list, d_list)
+            )
+            return p_sum + mu * m
+        return dJ_3
+
+    def get_K_J_3(mu):
+        Ainv = sp.linalg.inv(A.tocsc())
+        K_op_J_3 = sum(
+            B_i.conj().T @ Ainv.conj().T @ C.conj().T @ C @ Ainv @ B_i for B_i in B_list
+        ) + mu * sp.eye(P)
+        K_eigenvalues_J_3 = np.linalg.eigvals(K_op_J_3.toarray())
+        return np.max(np.abs(K_eigenvalues_J_3))
+
+    # ================================ No noise case ================================
+
+    # Get functions and Lipschitz constants
+    J_1 = get_J_1(d, lambd, mu_1)
+    dJ_1 = get_dJ_1(d, lambd, mu_1)
+    closed_form_solution_J_1 = get_closed_form_solution_J_1(d, lambd, mu_1)
+    K_J_1 = get_K_J_1(lambd, mu_1)
+    logger.info(f"Lipschitz constant K_J_1: {K_J_1}")
+
+    J_2 = get_J_2(d, mu_2)
+    grad_J_2 = get_grad_J_2(d, mu_2)
+    prox_J_2 = get_prox_J_2()
+    K_J_2 = get_K_J_2(mu_2)
     logger.info(f"Lipschitz constant K_J_2: {K_J_2}")
 
-    def J_3(m):
-        total = 0.0
-        for i in range(I):
-            CA_inv_Bi_m = C @ sp.linalg.spsolve(A, B_list[i] @ m)
-            diff = CA_inv_Bi_m - d_list[i]
-            total += 0.5 * np.vdot(diff, diff).real
-        return total + 0.5 * mu * np.vdot(m, m).real
-
-    def dJ_3(m):
-        p_sum = sum(
-            B_i.conj().T
-            @ sp.linalg.spsolve(
-                A_star,
-                C_star @ (C @ sp.linalg.spsolve(A, B_i @ m) - d_i),
-            )
-            for B_i, d_i in zip(B_list, d_list)
-        )
-        return p_sum + mu * m
-
-    Ainv = sp.linalg.inv(A.tocsc())
-    K_op_J_3 = sum(
-        B_i.conj().T @ Ainv.conj().T @ C.conj().T @ C @ Ainv @ B_i for B_i in B_list
-    ) + mu * sp.eye(P)
-    K_eigenvalues_J_3 = np.linalg.eigvals(K_op_J_3.toarray())
-    K_J_3 = np.max(np.abs(K_eigenvalues_J_3))
+    J_3 = get_J_3(d_list, mu_3)
+    dJ_3 = get_dJ_3(d_list, mu_3)
+    K_J_3 = get_K_J_3(mu_3)
     logger.info(f"Lipschitz constant K_J_3: {K_J_3}")
 
     x_0 = np.zeros(I * L + P, dtype=np.complex128)  # shape: (I*L + P,)
-    max_iterations = 1000
+    max_iterations = int(args.max_iterations)
 
+    # Run algorithms
     algo_1 = ClosedFormSolution(
         exp_name=args.exp_name,
-        algo_plot_name="P-NAGD",
+        algo_plot_name="P-ClosedForm",
         f=J_1,
-        solution=closed_form_solution_J_1(),
+        solution=closed_form_solution_J_1,
         logger=logger,
-        verbose=verbose,
+        verbose=args.verbose,
     )
     x_1 = algo_1.run(x0=x_0, max_iterations=max_iterations)
     algo_1.plot_algorithm_convergence(m, args.visuals_path)
-    export_all_metrics_to_csv(algo_1, os.path.join(args.results_path, "P-NAGD_Metrics.csv"))
-    save_complex_vector(os.path.join(args.results_path, "P-NAGD_PredictedVectorm.dat"), x_1[-P:])
+    export_all_metrics_to_csv(algo_1, os.path.join(args.results_path, "P-ClosedForm_Metrics.csv"))
+    save_complex_vector(os.path.join(args.results_path, "P-ClosedForm_PredictedVectorm.dat"), x_1[-P:])
 
     algo_2 = FISTA(
         exp_name=args.exp_name,
@@ -188,7 +226,7 @@ if __name__ == "__main__":
         prox=prox_J_2,
         K=K_J_2,
         logger=logger,
-        verbose=verbose,
+        verbose=args.verbose,
     )
     x_2 = algo_2.run(x0=x_0, max_iterations=max_iterations)
     algo_2.plot_algorithm_convergence(m, args.visuals_path)
@@ -202,7 +240,7 @@ if __name__ == "__main__":
         df=dJ_3,
         K=K_J_3,
         logger=logger,
-        verbose=verbose,
+        verbose=args.verbose,
     )
     m_3 = algo_3.run(x0=x_0[-P:], max_iterations=max_iterations)
     algo_3.plot_algorithm_convergence(m, args.visuals_path)
@@ -216,3 +254,103 @@ if __name__ == "__main__":
         save=True,
         show_time_memory=True,
     )
+
+    # ================================ Noise case ================================
+
+    if args.enable_noise:
+        noise_level = float(args.noise_level)
+        samples = int(args.samples)
+        logger.info(f"Adding Gaussian noise with standard deviation {noise_level} for {samples} samples.")
+
+        # Initialize arrays for metrics: shape (3, samples)
+        mse_array = np.zeros((3, samples))
+        mae_array = np.zeros((3, samples))
+        f_array = np.zeros((3, samples))
+
+        for idx, sample in enumerate(range(samples)):
+            logger.info(f"Sample {sample + 1}/{samples}")
+
+            # Add noise to the observations
+            d_list_noisy = [
+                d_i + noise_level * (
+                np.random.normal(size=d_i.shape) + 1j * np.random.normal(size=d_i.shape)
+                )
+                for d_i in d_list
+            ]
+            d_noisy = np.concatenate(d_list_noisy, axis=0)
+
+            # Get functions and keep the same Lipschitz constants
+            J_1_noisy = get_J_1(d_noisy, lambd, mu_1)
+            dJ_1_noisy = get_dJ_1(d_noisy, lambd, mu_1)
+            closed_form_solution_J_1_noisy = get_closed_form_solution_J_1(d_noisy, lambd, mu_1)
+
+            J_2_noisy = get_J_2(d_noisy, mu_2)
+            grad_J_2_noisy = get_grad_J_2(d_noisy, mu_2)
+            prox_J_2_noisy = get_prox_J_2()
+
+            J_3_noisy = get_J_3(d_list_noisy, mu_2)
+            dJ_3_noisy = get_dJ_3(d_list_noisy, mu_2)
+            
+            # Run algorithms
+            algo_1_noisy = ClosedFormSolution(
+                exp_name=args.exp_name,
+                algo_plot_name="P-ClosedForm",
+                f=J_1_noisy,
+                solution=closed_form_solution_J_1_noisy,
+                logger=logger,
+                verbose=args.verbose,
+            )
+
+            x_1_noisy = algo_1_noisy.run(x0=x_0, max_iterations=max_iterations)
+            algo_1_noisy.plot_algorithm_convergence(m, args.visuals_path, show=False, save=False)
+            if idx == 0:
+                save_complex_vector(os.path.join(args.results_path, f"P-ClosedForm_noise={noise_level}_PredictedVectorm.dat"), x_1_noisy[-P:])
+            mse_array[0, sample] = algo_1_noisy.mse_values[-1]
+            mae_array[0, sample] = algo_1_noisy.mae_values[-1]
+            f_array[0, sample] = algo_1_noisy.f_values[-1]
+
+            algo_2_noisy = FISTA(
+                exp_name=args.exp_name,
+                algo_plot_name="FISTA",
+                f=J_2_noisy,
+                grad=grad_J_2_noisy,
+                prox=prox_J_2_noisy,
+                K=K_J_2,
+                logger=logger,
+                verbose=args.verbose,
+            )
+            x_2_noisy = algo_2_noisy.run(x0=x_0, max_iterations=max_iterations)
+            algo_2_noisy.plot_algorithm_convergence(m, args.visuals_path, show=False, save=False)
+            if idx == 0:
+                save_complex_vector(os.path.join(args.results_path, f"FISTA_noise={noise_level}_PredictedVectorm.dat"), x_2_noisy[-P:])
+            mse_array[1, sample] = algo_2_noisy.mse_values[-1]
+            mae_array[1, sample] = algo_2_noisy.mae_values[-1]
+            f_array[1, sample] = algo_2_noisy.f_values[-1]
+
+            algo_3_noisy = NesterovAcceleratedGradientDescent(
+                exp_name=args.exp_name,
+                algo_plot_name="C-NAGD",
+                f=J_3_noisy,
+                df=dJ_3_noisy,
+                K=K_J_3,
+                logger=logger,
+                verbose=args.verbose,
+            )
+            m_3_noisy = algo_3_noisy.run(x0=x_0[-P:], max_iterations=max_iterations)
+            algo_3_noisy.plot_algorithm_convergence(m, args.visuals_path, show=False, save=False)
+            if idx == 0:
+                save_complex_vector(os.path.join(args.results_path, f"C-NAGD_noise={noise_level}_PredictedVectorm.dat"), m_3_noisy)
+            mse_array[2, sample] = algo_3_noisy.mse_values[-1]
+            mae_array[2, sample] = algo_3_noisy.mae_values[-1]
+            f_array[2, sample] = algo_3_noisy.f_values[-1]
+
+        # Compute mean and std for each metric and algorithm
+        algo_names = ["P-ClosedForm", "FISTA", "C-NAGD"]
+        metrics = ["MSE", "MAE", "f"]
+        arrays = [mse_array, mae_array, f_array]
+
+        for arr, metric in zip(arrays, metrics):
+            mean = arr.mean(axis=-1)
+            std = arr.std(axis=-1)
+            for i, algo in enumerate(algo_names):
+                logger.info(f"{algo} {metric}: mean={mean[i]:.6f}, std={std[i]:.6f}")

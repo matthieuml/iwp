@@ -29,10 +29,10 @@ def plot_all_algorithms_convergence(
     algorithms, visuals_path, add_marker=False, show=False, save=True, show_time_memory=False
 ):
     if show_time_memory:
-        fig, axs = custom_layout(5, 3, fig_kwargs={"figsize": (25, 10)})
+        _, axs = custom_layout(5, 3, fig_kwargs={"figsize": (25, 12)})
         top_axs = axs[0]
     else:
-        fig, axs = plt.subplots(1, 3, figsize=(18, 5))
+        _, axs = plt.subplots(1, 3, figsize=(18, 5))
         top_axs = axs
     algo_plot_names = []
 
@@ -78,9 +78,7 @@ def plot_all_algorithms_convergence(
                     color="black",
                 )
     top_axs[2].legend(
-        loc="center left",
-        bbox_to_anchor=(1.05, 0.5),
-        title="μ values"
+        loc="upper right",
     )
 
     if show_time_memory:
