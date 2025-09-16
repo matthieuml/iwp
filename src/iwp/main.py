@@ -273,6 +273,7 @@ if __name__ == "__main__":
         show=False,
         save=True,
         show_time_memory=True,
+        results=True,
     )
 
     # ================================ Noise case ================================

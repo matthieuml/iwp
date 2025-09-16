@@ -6,6 +6,16 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 
 
+plt.rcParams.update({
+    "font.size": 18,
+    "axes.titlesize": 20,
+    "axes.labelsize": 18,
+    "xtick.labelsize": 14,
+    "ytick.labelsize": 14,
+    "legend.fontsize": 16,
+})  
+
+
 def custom_layout(n_plots, cols, fig_kwargs={}):
     rows = math.ceil(n_plots / cols)
 
@@ -32,6 +42,7 @@ def plot_all_algorithms_convergence(
     show=False,
     save=True,
     show_time_memory=False,
+    results=False,
 ):
     if show_time_memory:
         _, axs = custom_layout(5, 3, fig_kwargs={"figsize": (25, 12)})
@@ -82,9 +93,16 @@ def plot_all_algorithms_convergence(
                     linestyle=":",
                     color="black",
                 )
-    top_axs[2].legend(
-        loc="upper right",
-    )
+    if results:
+        top_axs[2].legend(
+            loc="upper right",
+            fontsize=14,
+        )
+    else:
+        top_axs[2].legend(
+            bbox_to_anchor=(1.5, 0.95),
+            title="Parameters",
+        )
 
     if show_time_memory:
         cv_times = [algo.cv_time for algo in algorithms]
@@ -97,15 +115,16 @@ def plot_all_algorithms_convergence(
         axs[1, 1].set_title("Peak Memory Usage")
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    if save:
+        plt.savefig(os.path.join(visuals_path, "All_algorithms.pdf"))
     if show:
         plt.show()
-    if save:
-        plt.savefig(os.path.join(visuals_path, "Global.pdf"))
     plt.close()
 
 
-def plot_objective_functions_by_algorithm(list_of_algo_lists, add_marker=False):
+def plot_objective_functions_by_algorithm(list_of_algo_lists, visuals_path, add_marker=False, show=False, save=True):
     fig, axs = plt.subplots(1, len(list_of_algo_lists), figsize=(18, 5))
+    max_iterations = max(algo.max_iterations for algo_list in list_of_algo_lists for algo in algo_list)
     for idx, algo_list in enumerate(list_of_algo_lists):
         for algo in algo_list:
             label_name = algo.algo_plot_name
@@ -126,9 +145,19 @@ def plot_objective_functions_by_algorithm(list_of_algo_lists, add_marker=False):
                     color="black",
                     markersize=10,
                 )
+            if iters < max_iterations:
+                axs[idx].plot(
+                    range(iters - 1, max_iterations),
+                    [values[-1]] * (max_iterations - iters + 1),
+                    linestyle=":",
+                    color="black",
+                )
         axs[idx].set_xlabel("Iteration")
         axs[idx].set_ylabel("Objective function")
         axs[idx].set_yscale("log")
-        axs[idx].legend()
+        axs[idx].legend(loc="upper right", fontsize=14)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
+    if save:
+        plt.savefig(os.path.join(visuals_path, "Objective_by_algorithm.pdf"))
+    if show:
+        plt.show()

@@ -10,7 +10,7 @@ from .metrics import mae, mse
 
 
 class FixedPointAlgorithm(abc.ABC):
-    def __init__(self, exp_name, algo_plot_name, f, logger=None, verbose=True):
+    def __init__(self, exp_name, algo_plot_name, f, logger=None, verbose=False):
         self.exp_name = exp_name
         self.algo_plot_name = algo_plot_name
         self.f = f
@@ -127,7 +127,7 @@ class FixedPointAlgorithm(abc.ABC):
 
 class ClosedFormSolution(FixedPointAlgorithm):
     def __init__(
-        self, exp_name, algo_plot_name, f, solution, logger=None, verbose=True
+        self, exp_name, algo_plot_name, f, solution, logger=None, verbose=False
     ):
         super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
         self.solution = solution
@@ -141,7 +141,7 @@ class ClosedFormSolution(FixedPointAlgorithm):
 
 class GradientDescent(FixedPointAlgorithm):
     def __init__(
-        self, exp_name, algo_plot_name, f, df, K, gamma, logger=None, verbose=True
+        self, exp_name, algo_plot_name, f, df, K, gamma, logger=None, verbose=False
     ):
         super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
         self.df = df
@@ -159,7 +159,7 @@ class GradientDescent(FixedPointAlgorithm):
 
 
 class NesterovAcceleratedGradientDescent(FixedPointAlgorithm):
-    def __init__(self, exp_name, algo_plot_name, f, df, K, logger=None, verbose=True):
+    def __init__(self, exp_name, algo_plot_name, f, df, K, logger=None, verbose=False):
         super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
         self.df = df
         self.K = K
@@ -185,7 +185,7 @@ class NesterovAcceleratedGradientDescent(FixedPointAlgorithm):
 
 class StronglyConvexNesterovAcceleratedGradientDescent(FixedPointAlgorithm):
     def __init__(
-        self, exp_name, algo_plot_name, f, df, K, mu, logger=None, verbose=True
+        self, exp_name, algo_plot_name, f, df, K, mu, logger=None, verbose=False
     ):
         super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
         self.df = df
@@ -220,7 +220,7 @@ class ForwardBackward(FixedPointAlgorithm):
         gamma,
         lambd,
         logger=None,
-        verbose=True,
+        verbose=False,
     ):
         super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
         self.grad = grad
@@ -251,7 +251,7 @@ class FISTA(FixedPointAlgorithm):
         prox,
         K,
         logger=None,
-        verbose=True,
+        verbose=False,
     ):
         super().__init__(exp_name, algo_plot_name, f, logger=logger, verbose=verbose)
         self.grad = grad
